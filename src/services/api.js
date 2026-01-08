@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // React proxy (in package.json) will forward requests to http://localhost:8080
-const API_URL = '/fintech-banking';
+const API_URL = 'http://localhost:8080';
 
 const api = axios.create({
     baseURL: API_URL,
@@ -13,12 +13,14 @@ const api = axios.create({
 export const loginUser = async (credentials) => {
     try {
         // Expecting a Servlet that accepts POST params
-        const params = new URLSearchParams();
-        params.append('accountNumber', credentials.accountNumber);
-        params.append('password', credentials.password);
+        // const params = new URLSearchParams();
+        // params.append('AccountNumber', credentials.accountNumber);
+        // params.append('password', credentials.password);
 
-        const response = await api.post('/login', params);
+        const response = await axios.post(`${API_URL}/login`,credentials );
         return response.data;
+        // const response = await api.post('/login', params);
+        // return response.data;
     } catch (error) {
         throw error;
     }
@@ -26,10 +28,10 @@ export const loginUser = async (credentials) => {
 
 export const createAccount = async (accountData) => {
     try {
-        const params = new URLSearchParams();
-        Object.keys(accountData).forEach(key => params.append(key, accountData[key]));
-
-        const response = await api.post('/createAccount', params);
+        // const params = new URLSearchParams();
+        // Object.keys(accountData).forEach(key => params.append(key, accountData[key]));
+        const response = await axios.post(`${API_URL}/CreateAccount`,accountData );
+        // const response = await api.post('/CreateAccount', accountData);
         return response.data;
     } catch (error) {
         throw error;

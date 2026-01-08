@@ -17,6 +17,8 @@ const CreateAccount = () => {
         accountType: 'Savings',
         initialDeposit: '',
     });
+
+
     const [error, setError] = useState('');
 
     const handleChange = (e) => {
@@ -27,41 +29,27 @@ const CreateAccount = () => {
         }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async(e) => {
         e.preventDefault();
         setError('');
         console.log('Account Creation Data:', formData);
 
-        createAccount(formData)
-            .then(response => {
-                console.log('Account Created:', response);
-                // The Servlet redirects to create_account.jsp?success=true&account=ACC...
-                // But since we are using axios, we might get the HTML of that page or a redirect response.
-                // ideally the backend should return JSON.
-                // If the backend returns a redirect, axios might follow it or return the page.
-
-                // Assuming for now the backend might be adjusted or we parse the redirect URL if possible,
-                // OR we just alert the user to check their backend logs/DB if we can't parse it easily without backend changes.
-
-                // However, often standard Spring MVC/Servlets interaction with React implies returning JSON.
-                // If the Servlet code provided earlier does `response.sendRedirect`, that's tricky for an SPA (Single Page App).
-
-                // Hack: If we assume the user modifies the backend to return JSON, good.
-                // If not, we might check if response.request.responseURL contains the account number?
-
-                // Let's assume successful 200 OK means it worked for now and try to hint at the login,
-                // or simpler: tell the user "Account Created! Please check your dashboard or backend specific output for the Account Number".
-
-                // WAIT, earlier I saw: `response.sendRedirect("create_account.jsp?success=true&account=" + accountNumber);`
-                // Axios follows redirects transparently usually. The final responseURL might have the param.
-
-                alert(`Account Creation Request Sent! \nIf successful, you can now login with your password.`);
-                navigate('/login');
-            })
-            .catch(err => {
-                console.error('Creation Failed:', err);
-                setError('Failed to create account. Please check your inputs or backend connection.');
-            });
+        const payload = {
+            ...formData,
+            DOB: formData.dob,
+            AadharNumber: formData.aadharNumber,
+            Currentballance: formData.initialDeposit,
+        };
+        delete payload.dob;
+        delete payload.aadharNumber;
+        const response = await createAccount(payload)
+        if(response.status==='success'){
+            navigate('/login');
+        }else if(response.status==='failed'){
+            setError(response.message);
+        }
+            
+            
     };
 
     return (

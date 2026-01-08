@@ -19,25 +19,26 @@ const Login = () => {
         }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async(e) => {
         e.preventDefault();
         setError(''); // Clear previous errors
         console.log('Login Attempt:', formData);
-
+        const payload = {
+            ...formData,
+            AccountNumber : formData.accountNumber,
+        };
+            delete payload.accountNumber;
         // Call the API
-        loginUser(formData)
-            .then(response => {
-                console.log('Login Success:', response);
-                // Assuming response contains specific success indicator or user data
-                // Store account number or token if needed
-                localStorage.setItem('accountNumber', formData.accountNumber);
-                alert(`Login Successful! Welcome Account: ${formData.accountNumber}`);
-                navigate('/balance'); // Redirect to dashboard/balance on success
-            })
-            .catch(err => {
-                console.error('Login Failed:', err);
-                setError('Login failed. Please check your credentials.');
-            });
+        const response = await loginUser(payload);
+        if(response.status==='success'){
+            console.log(response.data);
+
+            localStorage.setItem('accountId', response.data);
+            navigate('/deposit');
+        }else if(response.status==='failed'){
+            setError(response.message);
+        }
+           
     };
 
     return (
