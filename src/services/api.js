@@ -1,12 +1,14 @@
 import axios from 'axios';
 
-// React proxy (in package.json) will forward requests to http://localhost:8080
+// In development, the 'proxy' in package.json handles forwarding to http://localhost:8080
+// This avoids CORS issues. Set to empty string for standard relative path proxying.
+const API_BASE_URL = '';
 const API_URL = '/fintech-banking';
 
 const api = axios.create({
-    baseURL: API_URL,
+    baseURL: `${API_BASE_URL}${API_URL}`,
     headers: {
-        'Content-Type': 'application/x-www-form-urlencoded', // Servlets often expect form data
+        'Content-Type': 'application/x-www-form-urlencoded',
     },
 });
 
