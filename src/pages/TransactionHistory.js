@@ -16,7 +16,7 @@ const TransactionHistory = () => {
         getTransactions(accountId)
             .then(data => {
                 // Ensure data is array
-                const txns = Array.isArray(data) ? data : [];
+                const txns = Array.isArray(data.data) ? data.data : [];
                 setTransactions(txns);
                 setLoading(false);
             })
@@ -25,6 +25,9 @@ const TransactionHistory = () => {
                 setError('Failed to load transactions.');
                 setLoading(false);
             });
+
+            console.log({transactions});
+            
     };
 
     return (
@@ -60,20 +63,21 @@ const TransactionHistory = () => {
                                     <th style={styles.th}>Date</th>
                                     <th style={styles.th}>Type</th>
                                     <th style={styles.th}>ID</th>
-                                    <th style={styles.th}>Status</th>
+                                    <th style={styles.th}>toAccount</th>
                                     <th style={styles.thRight}>Amount</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {transactions.map((txn) => (
                                     <tr key={txn.id} style={styles.tr}>
-                                        <td style={styles.td}>{txn.date}</td>
-                                        <td style={styles.td}>{txn.type}</td>
-                                        <td style={styles.tdCode}>{txn.id}</td>
-                                        <td style={styles.td}>
+                                        <td style={styles.td}>{txn.transactionDate}</td>
+                                        <td style={styles.td}>{txn.transactionType}</td>
+                                        <td style={styles.tdCode}>{txn.transaction_id}</td>
+                                        {/* <td style={styles.td}>
                                             <span style={getStatusStyle(txn.status)}>{txn.status}</span>
-                                        </td>
-                                        <td style={{ ...styles.tdRight, ...getAmountStyle(txn.amount) }}>
+                                        </td> */}
+                                        <td style={styles.tdCode}>{txn.toAccount}</td>
+                                        <td style={{ ...styles.tdRight, ...getAmountStyle(txn,txn.amount) }}>
                                             {txn.amount > 0 ? '+' : ''}{txn.amount.toFixed(2)}
                                         </td>
                                     </tr>
@@ -103,10 +107,17 @@ const getStatusStyle = (status) => {
     }
 };
 
-const getAmountStyle = (amount) => ({
-    color: amount > 0 ? '#10b981' : '#f8fafc',
-    fontWeight: '600',
-});
+const getAmountStyle = (txn, amount) => {
+    if(txn.transactionType === 'debit') {
+        return {color: '#ef4444',
+        fontWeight: '600'}
+    } else {
+        return {color: '#10b981',
+        fontWeight: '600'}
+    }
+    // color: amount > 0 ? '#10b981' : '#f8fafc',
+    // fontWeight: '600',
+};
 
 const styles = {
     container: {

@@ -12,8 +12,10 @@ const Balance = () => {
         setError('');
         setBalance(null);
         console.log('Checking balance for:', accountId);
-
-        getBalance(accountId)
+        let acc = localStorage.getItem('accountNumber');
+        console.log('acc',acc);
+        
+        getBalance(acc)
             .then(response => {
                 console.log('Balance:', response);
                 const bal = typeof response === 'object' ? response.balance : response;

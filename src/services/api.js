@@ -3,10 +3,10 @@ import axios from 'axios';
 // In development, the 'proxy' in package.json handles forwarding to http://localhost:8080
 // This avoids CORS issues. Set to empty string for standard relative path proxying.
 const API_BASE_URL = '';
-const API_URL = '/fintech-banking';
+const API_URL = 'http://localhost:8080';
 
 const api = axios.create({
-    baseURL: `${API_BASE_URL}${API_URL}`,
+    baseURL: `${API_URL}`,
     headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
     },
@@ -15,11 +15,18 @@ const api = axios.create({
 export const loginUser = async (credentials) => {
     try {
         // Expecting a Servlet that accepts POST params
-        const params = new URLSearchParams();
-        params.append('accountNumber', credentials.accountNumber);
-        params.append('password', credentials.password);
+        // const params = new URLSearchParams();
+        // params.append('AccountNumber', credentials.accountNumber);
+        // params.append('password', credentials.password);
 
-        const response = await api.post('/login', params);
+        // const response = await api.post(`${API_URL}/login`, params);
+        let params = {
+            ...credentials,
+            AccountNumber: credentials.accountNumber
+        }
+        
+        const response = await axios.post(`${API_URL}/login`, params);
+        
         return response.data;
     } catch (error) {
         throw error;
@@ -40,11 +47,16 @@ export const createAccount = async (accountData) => {
 
 export const depositFunds = async (data) => {
     try {
-        const params = new URLSearchParams();
-        params.append('accountId', data.accountId);
-        params.append('amount', data.amount);
+        // const params = new URLSearchParams();
+        // params.append('accountId', data.accountId);
+        // params.append('amount', data.amount);
 
-        const response = await api.post('/deposit', params);
+        // const response = await api.post('/deposit', params);
+        let param ={
+            ...data,
+            accountNumber : data.accountId,
+        }
+        const response = await axios.post(`${API_URL}/deposit`, param);
         return response.data;
     } catch (error) {
         throw error;
@@ -53,12 +65,14 @@ export const depositFunds = async (data) => {
 
 export const transferFunds = async (data) => {
     try {
-        const params = new URLSearchParams();
-        params.append('sourceAccountId', data.sourceAccountId);
-        params.append('targetAccountId', data.targetAccountId);
-        params.append('amount', data.amount);
+        // const params = new URLSearchParams();
+        // params.append('sourceAccountId', data.sourceAccountId);
+        // params.append('targetAccountId', data.targetAccountId);
+        // params.append('amount', data.amount);
 
-        const response = await api.post('/transfer', params);
+        // const response = await api.post('/transfer', params);
+        
+        const response = await axios.post(`${API_URL}/transfer-money`, data);
         return response.data;
     } catch (error) {
         throw error;
@@ -67,7 +81,7 @@ export const transferFunds = async (data) => {
 
 export const getBalance = async (accountId) => {
     try {
-        const response = await api.get(`/balance?accountId=${accountId}`);
+        const response = await axios.get(`${API_URL}/balance/${accountId}`);
         return response.data;
     } catch (error) {
         throw error;
@@ -76,7 +90,7 @@ export const getBalance = async (accountId) => {
 
 export const getTransactions = async (accountId) => {
     try {
-        const response = await api.get(`/transactions?accountId=${accountId}`);
+        const response = await axios.get(`${API_URL}/transactions?accountNumber=${accountId}`);
         return response.data;
     } catch (error) {
         throw error;
