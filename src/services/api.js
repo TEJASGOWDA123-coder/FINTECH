@@ -33,12 +33,31 @@ export const loginUser = async (credentials) => {
     }
 };
 
+
+export const fetchLoginUser = async (token) => {
+
+try{
+    const response = await axios.get(`${API_URL}/loggedin_user`, {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+    return response.data;
+}catch(error){
+    throw error;
+}
+}
+
 export const createAccount = async (accountData) => {
     try {
-        const params = new URLSearchParams();
-        Object.keys(accountData).forEach(key => params.append(key, accountData[key]));
-
-        const response = await api.post('/createAccount', params);
+        // const params = new URLSearchParams();
+        // Object.keys(accountData).forEach(key => params.append(key, accountData[key]));
+        let params = {
+            ...accountData,
+            'AadharNumber': accountData.aadharNumber
+        }
+        delete params.aadharNumber;
+        const response = await axios.post(`${API_URL}/CreateAccount`, params);
         return response.data;
     } catch (error) {
         throw error;
@@ -81,7 +100,12 @@ export const transferFunds = async (data) => {
 
 export const getBalance = async (accountId) => {
     try {
-        const response = await axios.get(`${API_URL}/balance/${accountId}`);
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`${API_URL}/balance`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
         return response.data;
     } catch (error) {
         throw error;

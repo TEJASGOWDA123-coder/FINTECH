@@ -12,10 +12,11 @@ const Balance = () => {
         setError('');
         setBalance(null);
         console.log('Checking balance for:', accountId);
-        let acc = localStorage.getItem('accountNumber');
-        console.log('acc',acc);
-        
-        getBalance(acc)
+        // let acc = localStorage.getItem('accountNumber');
+        // const token = localStorage.getItem('token');
+        // console.log('token',token);
+
+        getBalance()
             .then(response => {
                 console.log('Balance:', response);
                 const bal = typeof response === 'object' ? response.balance : response;
@@ -43,7 +44,7 @@ const Balance = () => {
                             value={accountId}
                             onChange={(e) => setAccountId(e.target.value)}
                             placeholder="Enter Account ID"
-                            required
+                            // required
                         />
                     </div>
 

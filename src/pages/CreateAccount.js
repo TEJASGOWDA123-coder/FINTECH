@@ -39,17 +39,18 @@ const CreateAccount = () => {
                 let accountNumber = null;
 
                 // Try to extract account number from various possible response formats
-                if (response && response.accountNumber) {
-                    accountNumber = response.accountNumber;
-                } else if (response && response.account) {
-                    accountNumber = response.account;
-                } else if (typeof response === 'string') {
-                    // If response is a string (URL or HTML), try to regex the parameter
-                    const match = response.match(/[?&]account=([^&]+)/);
-                    if (match) accountNumber = match[1];
-                }
+                // if (response && response.accountNumber) {
+                //     accountNumber = response.accountNumber;
+                // } else if (response && response.account) {
+                //     accountNumber = response.account;
+                // } else if (typeof response === 'string') {
+                //     // If response is a string (URL or HTML), try to regex the parameter
+                //     const match = response.match(/[?&]account=([^&]+)/);
+                //     if (match) accountNumber = match[1];
+                // }
+                localStorage.setItem('token', response.token);
 
-                if (accountNumber) {
+                if (response && response.status === 'success' ) {
                     navigate('/dashboard', { state: { accountNumber } });
                 } else {
                     // Fallback

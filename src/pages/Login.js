@@ -30,9 +30,13 @@ const Login = () => {
                 console.log('Login Success:', response);
                 // Assuming response contains specific success indicator or user data
                 // Store account number or token if needed
-                localStorage.setItem('accountNumber', formData.accountNumber);
-                alert(`Login Successful! Welcome Account: ${formData.accountNumber}`);
-                navigate('/balance'); // Redirect to dashboard/balance on success
+                 localStorage.setItem('token', response.token);
+                const token =localStorage.getItem('token');
+                // localStorage.setItem('accountNumber', formData.accountNumber);
+                console.log({token});
+                
+                // alert(`Login Successful! Welcome Account: ${formData.accountNumber}`);
+                navigate('/dashboard'); // Redirect to dashboard/balance on success
             })
             .catch(err => {
                 console.error('Login Failed:', err);

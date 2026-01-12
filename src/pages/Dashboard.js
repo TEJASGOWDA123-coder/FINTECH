@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { fetchLoginUser } from '../services/api';
 import '../index.css';
 
 const Dashboard = () => {
@@ -8,6 +9,15 @@ const Dashboard = () => {
     const [accountNumber, setAccountNumber] = useState('');
 
     useEffect(() => {
+
+        const token = localStorage.getItem('token')
+        fetchLoginUser(token).then(response => {
+            console.log('Logged in user data:', response);
+            setAccountNumber(response.data.Currentballance);
+            // You can set user data to state if needed
+        });
+        // console.log({'dashboard_token':token});
+        
         if (location.state && location.state.accountNumber) {
             setAccountNumber(location.state.accountNumber);
         } else {
