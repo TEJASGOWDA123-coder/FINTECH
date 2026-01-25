@@ -3,8 +3,9 @@ import { depositFunds } from '../services/api';
 import '../index.css';
 
 const Deposit = () => {
+    const storedAccount = localStorage.getItem('accountNumber') || '';
     const [formData, setFormData] = useState({
-        accountId: '',
+        accountId: storedAccount,
         amount: '',
     });
     const [error, setError] = useState('');
@@ -47,18 +48,6 @@ const Deposit = () => {
 
                 <form onSubmit={handleSubmit} style={styles.form}>
                     <div style={styles.inputGroup}>
-                        <label style={styles.label}>Account ID</label>
-                        <input
-                            type="text"
-                            name="accountId"
-                            value={formData.accountId}
-                            onChange={handleChange}
-                            placeholder="Enter Account ID"
-                            required
-                        />
-                    </div>
-
-                    <div style={styles.inputGroup}>
                         <label style={styles.label}>Amount ($)</label>
                         <input
                             type="number"
@@ -83,50 +72,46 @@ const Deposit = () => {
 
 const styles = {
     container: {
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '80vh', // Adjusted since we have a navbar now
-        padding: '20px',
+        maxWidth: '800px',
+        margin: '2rem auto',
     },
     card: {
         backgroundColor: 'var(--bg-secondary)',
         padding: '2.5rem',
-        borderRadius: 'var(--radius-lg)',
-        boxShadow: 'var(--shadow-lg)',
-        width: '100%',
-        maxWidth: '480px',
+        borderRadius: 'var(--radius-xl)',
         border: '1px solid var(--glass-border)',
+        boxShadow: 'var(--shadow-lg)',
+        transition: 'var(--transition)',
     },
     header: {
-        margin: '0 0 0.5rem 0',
         fontSize: '2rem',
-        fontWeight: '700',
-        textAlign: 'center',
-        background: 'linear-gradient(to right, var(--primary-color), var(--accent-color))',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
+        fontWeight: '900',
+        marginBottom: '0.75rem',
+        color: 'var(--text-primary)',
+        letterSpacing: '-0.02em',
     },
     subHeader: {
-        color: 'var(--text-secondary)',
-        textAlign: 'center',
-        marginBottom: '2rem',
+        color: 'var(--text-muted)',
+        marginBottom: '2.5rem',
+        fontSize: '1rem',
     },
     error: {
         color: 'var(--danger-color)',
+        backgroundColor: 'rgba(244, 63, 94, 0.1)',
+        padding: '1.25rem',
+        borderRadius: '16px',
         textAlign: 'center',
-        marginBottom: '1rem',
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        padding: '0.5rem',
-        borderRadius: '4px',
+        marginBottom: '2rem',
+        border: '1px solid var(--danger-color)',
     },
     success: {
-        color: 'var(--accent-color)',
-        textAlign: 'center',
-        marginBottom: '1rem',
+        color: 'var(--success-color)',
         backgroundColor: 'rgba(16, 185, 129, 0.1)',
-        padding: '0.5rem',
-        borderRadius: '4px',
+        padding: '1.25rem',
+        borderRadius: '16px',
+        textAlign: 'center',
+        marginBottom: '2rem',
+        border: '1px solid var(--success-color)',
     },
     form: {
         display: 'flex',
@@ -136,23 +121,25 @@ const styles = {
     inputGroup: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '0.5rem',
+        gap: '0.75rem',
     },
     label: {
-        fontSize: '0.9rem',
-        fontWeight: '500',
-        color: 'var(--text-secondary)',
+        fontSize: '0.85rem',
+        fontWeight: '700',
+        color: 'var(--text-muted)',
+        textTransform: 'uppercase',
+        letterSpacing: '0.1em',
     },
     button: {
-        backgroundColor: 'var(--accent-color)', // Emerald for money actions
+        backgroundColor: 'var(--success-color)',
         color: 'white',
         border: 'none',
         padding: '1rem',
         fontSize: '1rem',
-        fontWeight: '600',
-        borderRadius: 'var(--radius-md)',
-        marginTop: '1rem',
-        transition: 'filter 0.2s',
+        fontWeight: '800',
+        borderRadius: '12px',
+        cursor: 'pointer',
+        transition: 'var(--transition)',
     },
 };
 

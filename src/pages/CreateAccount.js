@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { createAccount } from '../services/api';
 import '../index.css';
 
@@ -66,11 +66,13 @@ const CreateAccount = () => {
 
     return (
         <div style={styles.container}>
-            <div style={styles.card}>
-                <h1 style={styles.header}>Create Account</h1>
-                <p style={styles.subHeader}>Start your financial journey with us.</p>
+            <div style={styles.glassCard}>
+                <div style={styles.header}>
+                    <h1 style={styles.title}>Create Account</h1>
+                    <p style={styles.subtitle}>Start your financial journey with us</p>
+                </div>
 
-                {error && <p style={styles.error}>{error}</p>}
+                {error && <div style={styles.error}>{error}</div>}
 
                 <form onSubmit={handleSubmit} style={styles.form}>
                     <div style={styles.row}>
@@ -82,10 +84,10 @@ const CreateAccount = () => {
                                 value={formData.username}
                                 onChange={handleChange}
                                 placeholder="johndoe123"
+                                style={styles.input}
                                 required
                             />
                         </div>
-
                         <div style={styles.inputGroup}>
                             <label style={styles.label}>Phone Number</label>
                             <input
@@ -94,6 +96,7 @@ const CreateAccount = () => {
                                 value={formData.phoneNumber}
                                 onChange={handleChange}
                                 placeholder="+1 234 567 8900"
+                                style={styles.input}
                                 required
                             />
                         </div>
@@ -107,6 +110,7 @@ const CreateAccount = () => {
                                 name="dob"
                                 value={formData.dob}
                                 onChange={handleChange}
+                                style={styles.input}
                                 required
                             />
                         </div>
@@ -116,11 +120,11 @@ const CreateAccount = () => {
                                 name="accountType"
                                 value={formData.accountType}
                                 onChange={handleChange}
-                                style={styles.select}
+                                style={styles.input}
                             >
-                                <option value="Savings">Savings</option>
-                                <option value="Current">Current</option>
-                                <option value="Business">Business</option>
+                                <option value="Savings">Savings Account</option>
+                                <option value="Current">Current Account</option>
+                                <option value="Business">Business Account</option>
                             </select>
                         </div>
                     </div>
@@ -133,6 +137,7 @@ const CreateAccount = () => {
                             value={formData.email}
                             onChange={handleChange}
                             placeholder="john@example.com"
+                            style={styles.input}
                             required
                         />
                     </div>
@@ -144,8 +149,8 @@ const CreateAccount = () => {
                             value={formData.address}
                             onChange={handleChange}
                             placeholder="123 FinTech Ave, New York, NY"
-                            rows="3"
-                            style={styles.textarea}
+                            rows="2"
+                            style={styles.input}
                             required
                         />
                     </div>
@@ -159,10 +164,10 @@ const CreateAccount = () => {
                                 value={formData.aadharNumber}
                                 onChange={handleChange}
                                 placeholder="1234 5678 9012"
+                                style={styles.input}
                                 required
                             />
                         </div>
-
                         <div style={styles.inputGroup}>
                             <label style={styles.label}>PAN Number</label>
                             <input
@@ -171,6 +176,7 @@ const CreateAccount = () => {
                                 value={formData.panNumber}
                                 onChange={handleChange}
                                 placeholder="ABCDE1234F"
+                                style={styles.input}
                                 required
                             />
                         </div>
@@ -185,10 +191,10 @@ const CreateAccount = () => {
                                 value={formData.password}
                                 onChange={handleChange}
                                 placeholder="••••••••"
+                                style={styles.input}
                                 required
                             />
                         </div>
-
                         <div style={styles.inputGroup}>
                             <label style={styles.label}>Initial Deposit ($)</label>
                             <input
@@ -198,6 +204,7 @@ const CreateAccount = () => {
                                 onChange={handleChange}
                                 placeholder="0.00"
                                 min="0"
+                                style={styles.input}
                                 required
                             />
                         </div>
@@ -206,60 +213,68 @@ const CreateAccount = () => {
                     <button type="submit" style={styles.button}>
                         Create Account
                     </button>
+
+                    <div style={styles.footer}>
+                        <p style={styles.footerText}>Already have an account?</p>
+                        <Link to="/login" style={styles.link}>Sign In</Link>
+                    </div>
                 </form>
             </div>
+            <style>{`
+                @keyframes fadeInUp {
+                    from { opacity: 0; transform: translateY(20px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+            `}</style>
         </div>
     );
 };
 
 const styles = {
     container: {
+        minHeight: '100vh',
+        width: '100%',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        minHeight: '100vh',
-        padding: '20px',
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)',
+        padding: '2rem 1rem',
     },
-    card: {
-        backgroundColor: 'var(--bg-secondary)',
-        padding: '2.5rem',
-        borderRadius: 'var(--radius-lg)',
-        boxShadow: 'var(--shadow-lg)',
+    glassCard: {
         width: '100%',
-        maxWidth: '520px', // Wider to accommodate 2 columns
-        border: '1px solid var(--glass-border)',
+        maxWidth: '700px',
+        padding: '3rem',
+        borderRadius: '24px',
+        background: 'rgba(255, 255, 255, 0.03)',
+        backdropFilter: 'blur(16px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        boxShadow: '0 25px 50px -12px rgba(11, 1, 73, 0.5)',
+        animation: 'fadeInUp 0.6s ease-out',
     },
     header: {
-        margin: '0 0 0.5rem 0',
-        fontSize: '2rem',
-        fontWeight: '700',
-        textAlign: 'center',
-        background: 'linear-gradient(to right, var(--primary-color), var(--accent-color))',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-    },
-    subHeader: {
-        color: 'var(--text-secondary)',
         textAlign: 'center',
         marginBottom: '2rem',
     },
-    error: {
-        color: 'var(--danger-color)',
-        textAlign: 'center',
-        marginBottom: '1rem',
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        padding: '0.5rem',
-        borderRadius: '4px',
+    title: {
+        fontSize: '2rem',
+        fontWeight: '900',
+        color: '#ffffff',
+        marginBottom: '0.5rem',
+        letterSpacing: '-0.02em',
+    },
+    subtitle: {
+        color: '#94a3b8',
+        fontSize: '0.95rem',
     },
     form: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '1.5rem',
+        gap: '1.25rem',
     },
     row: {
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '1rem',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        gap: '1.25rem',
     },
     inputGroup: {
         display: 'flex',
@@ -267,43 +282,61 @@ const styles = {
         gap: '0.5rem',
     },
     label: {
-        fontSize: '0.9rem',
-        fontWeight: '500',
-        color: 'var(--text-secondary)',
+        color: '#e2e8f0',
+        fontSize: '0.85rem',
+        fontWeight: '600',
+        marginLeft: '0.25rem',
     },
-    select: {
-        padding: '0.75rem 1rem',
-        backgroundColor: 'var(--bg-secondary)',
-        border: '1px solid var(--glass-border)',
-        color: 'var(--text-primary)',
-        borderRadius: 'var(--radius-md)',
-        fontSize: '1rem',
+    input: {
+        background: 'rgba(0, 0, 0, 0.2)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: '12px',
+        padding: '0.9rem 1rem',
+        color: '#ffffff',
+        fontSize: '0.95rem',
+        outline: 'none',
+        transition: 'all 0.2s',
         width: '100%',
-        boxSizing: 'border-box',
-    },
-    textarea: {
-        padding: '0.75rem 1rem',
-        backgroundColor: 'var(--bg-secondary)',
-        border: '1px solid var(--glass-border)',
-        color: 'var(--text-primary)',
-        borderRadius: 'var(--radius-md)',
-        fontSize: '1rem',
-        width: '100%',
-        boxSizing: 'border-box',
-        fontFamily: 'inherit',
-        resize: 'vertical',
     },
     button: {
-        backgroundColor: 'var(--primary-color)',
-        color: 'white',
+        marginTop: '1rem',
+        background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+        color: '#ffffff',
         border: 'none',
         padding: '1rem',
+        borderRadius: '12px',
         fontSize: '1rem',
-        fontWeight: '600',
-        borderRadius: 'var(--radius-md)',
-        marginTop: '1rem',
-        transition: 'background-color 0.2s',
+        fontWeight: '700',
+        cursor: 'pointer',
+        transition: 'all 0.3s',
+        boxShadow: '0 10px 15px -3px rgba(99, 102, 241, 0.3)',
     },
+    error: {
+        background: 'rgba(239, 68, 68, 0.1)',
+        border: '1px solid rgba(239, 68, 68, 0.2)',
+        color: '#f87171',
+        padding: '0.75rem',
+        borderRadius: '8px',
+        fontSize: '0.85rem',
+        textAlign: 'center',
+        marginBottom: '1.5rem',
+    },
+    footer: {
+        marginTop: '1.5rem',
+        textAlign: 'center',
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '0.5rem',
+        fontSize: '0.9rem',
+    },
+    footerText: {
+        color: '#94a3b8',
+    },
+    link: {
+        color: '#818cf8',
+        textDecoration: 'none',
+        fontWeight: '600',
+    }
 };
 
 export default CreateAccount;

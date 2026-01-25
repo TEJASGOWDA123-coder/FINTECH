@@ -5,48 +5,50 @@ import '../index.css';
 
 const Login = () => {
     const navigate = useNavigate();
-    const [formData, setFormData] = useState({
-        accountNumber: '',
-        password: '',
-    });
+    const [formData, setFormData] = useState({ accountNumber: '', password: '' });
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
+        setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        setError(''); // Clear previous errors
-        console.log('Login Attempt:', formData);
+        setLoading(true);
+        setError('');
 
-        // Call the API
-        loginUser(formData)
-            .then(response => {
-                console.log('Login Success:', response);
-                // Assuming response contains specific success indicator or user data
-                // Store account number or token if needed
-                localStorage.setItem('accountNumber', formData.accountNumber);
-                alert(`Login Successful! Welcome Account: ${formData.accountNumber}`);
-                navigate('/balance'); // Redirect to dashboard/balance on success
-            })
-            .catch(err => {
-                console.error('Login Failed:', err);
-                setError('Login failed. Please check your credentials.');
-            });
+        try {
+            // Attempt Login (Backend sets JSESSIONID cookie)
+            const data = await loginUser(formData);
+            console.log("Login API Response:", data);
+
+            // Check if backend returned an explicit error (e.g. JSON error)
+            if (data && (data.error || data.status === 'error')) {
+                throw new Error(data.message || data.error || "Login failed");
+            }
+
+            // Login successful - save account and navigate to dashboard
+            localStorage.setItem('accountNumber', formData.accountNumber);
+            window.dispatchEvent(new Event('storage'));
+            navigate('/dashboard');
+
+        } catch (err) {
+            console.error('Login Error:', err);
+            const msg = err.response?.data?.message || err.message || 'Invalid Credentials or Server Error';
+            setError(msg);
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
         <div style={styles.container}>
-            <div style={styles.card}>
-                <h1 style={styles.header}>Welcome Back</h1>
-                <p style={styles.subHeader}>Securely access your banking dashboard.</p>
-
-                {error && <p style={styles.error}>{error}</p>}
+            <div style={styles.glassCard}>
+                <div style={styles.header}>
+                    <h1 style={styles.title}>Welcome Back</h1>
+                    <p style={styles.subtitle}>Securely access your Financo account</p>
+                </div>
 
                 <form onSubmit={handleSubmit} style={styles.form}>
                     <div style={styles.inputGroup}>
@@ -56,11 +58,11 @@ const Login = () => {
                             name="accountNumber"
                             value={formData.accountNumber}
                             onChange={handleChange}
-                            placeholder="ACC12345678"
+                            placeholder="Enter your 6-digit ID"
+                            style={styles.input}
                             required
                         />
                     </div>
-
                     <div style={styles.inputGroup}>
                         <label style={styles.label}>Password</label>
                         <input
@@ -69,16 +71,20 @@ const Login = () => {
                             value={formData.password}
                             onChange={handleChange}
                             placeholder="••••••••"
+                            style={styles.input}
                             required
                         />
                     </div>
 
-                    <button type="submit" style={styles.button}>
-                        Login
+                    {error && <div style={styles.error}>{error}</div>}
+
+                    <button type="submit" style={styles.button} disabled={loading}>
+                        {loading ? 'Authenticating...' : 'Sign In'}
                     </button>
 
                     <div style={styles.footer}>
-                        <p style={styles.footerText}>New user? <Link to="/create-account" style={styles.link}>Create Account</Link></p>
+                        <p style={styles.footerText}>New to Fintech?</p>
+                        <Link to="/create-account" style={styles.link}>Create Account</Link>
                     </div>
                 </form>
             </div>
@@ -88,42 +94,42 @@ const Login = () => {
 
 const styles = {
     container: {
+        height: '100vh',
+        width: '100vw',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        minHeight: '80vh',
-        padding: '20px',
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        zIndex: 1000,
     },
-    card: {
-        backgroundColor: 'var(--bg-secondary)',
-        padding: '2.5rem',
-        borderRadius: 'var(--radius-lg)',
-        boxShadow: 'var(--shadow-lg)',
+    glassCard: {
         width: '100%',
-        maxWidth: '400px',
-        border: '1px solid var(--glass-border)',
+        maxWidth: '420px',
+        padding: '3rem',
+        borderRadius: '24px',
+        background: 'rgba(255, 255, 255, 0.03)',
+        backdropFilter: 'blur(16px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+        animation: 'fadeInUp 0.6s ease-out',
     },
     header: {
-        margin: '0 0 0.5rem 0',
+        textAlign: 'center',
+        marginBottom: '2.5rem',
+    },
+    title: {
         fontSize: '2rem',
-        fontWeight: '700',
-        textAlign: 'center',
-        background: 'linear-gradient(to right, var(--primary-color), var(--accent-color))',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
+        fontWeight: '900',
+        color: '#ffffff',
+        marginBottom: '0.5rem',
+        letterSpacing: '-0.02em',
     },
-    subHeader: {
-        color: 'var(--text-secondary)',
-        textAlign: 'center',
-        marginBottom: '2rem',
-    },
-    error: {
-        color: 'var(--danger-color)',
-        textAlign: 'center',
-        marginBottom: '1rem',
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        padding: '0.5rem',
-        borderRadius: '4px',
+    subtitle: {
+        color: '#94a3b8',
+        fontSize: '0.95rem',
     },
     form: {
         display: 'flex',
@@ -136,31 +142,56 @@ const styles = {
         gap: '0.5rem',
     },
     label: {
-        fontSize: '0.9rem',
-        fontWeight: '500',
-        color: 'var(--text-secondary)',
+        color: '#e2e8f0',
+        fontSize: '0.85rem',
+        fontWeight: '600',
+        marginLeft: '0.25rem',
+    },
+    input: {
+        background: 'rgba(0, 0, 0, 0.2)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: '12px',
+        padding: '1rem',
+        color: '#ffffff',
+        fontSize: '1rem',
+        outline: 'none',
+        transition: 'all 0.2s',
     },
     button: {
-        backgroundColor: 'var(--primary-color)',
-        color: 'white',
+        marginTop: '1rem',
+        background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+        color: '#ffffff',
         border: 'none',
         padding: '1rem',
+        borderRadius: '12px',
         fontSize: '1rem',
-        fontWeight: '600',
-        borderRadius: 'var(--radius-md)',
-        marginTop: '1rem',
-        transition: 'filter 0.2s',
+        fontWeight: '700',
+        cursor: 'pointer',
+        transition: 'all 0.3s',
+        boxShadow: '0 10px 15px -3px rgba(99, 102, 241, 0.3)',
+    },
+    error: {
+        background: 'rgba(239, 68, 68, 0.1)',
+        border: '1px solid rgba(239, 68, 68, 0.2)',
+        color: '#f87171',
+        padding: '0.75rem',
+        borderRadius: '8px',
+        fontSize: '0.85rem',
+        textAlign: 'center',
     },
     footer: {
+        marginTop: '1.5rem',
         textAlign: 'center',
-        marginTop: '1rem',
-    },
-    footerText: {
-        color: 'var(--text-secondary)',
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '0.5rem',
         fontSize: '0.9rem',
     },
+    footerText: {
+        color: '#94a3b8',
+    },
     link: {
-        color: 'var(--primary-color)',
+        color: '#818cf8',
         textDecoration: 'none',
         fontWeight: '600',
     }

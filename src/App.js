@@ -1,45 +1,62 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import CreateAccount from './pages/CreateAccount';
-import Login from './pages/Login';
 import Deposit from './pages/Deposit';
 import Transfer from './pages/Transfer';
 import Balance from './pages/Balance';
 import TransactionHistory from './pages/TransactionHistory';
-import Admin from './pages/Admin';
+import Dashboard from './pages/Dashboard';
+import Privacy from './pages/Privacy';
+import Settings from './pages/Settings';
+import Profile from './pages/Profile';
+import Notifications from './pages/Notifications';
+import Login from './pages/Login';
+import Sidebar from './components/Sidebar';
+import ChatBox from './components/ChatBox';
+import { ThemeProvider } from './context/ThemeContext';
 import './App.css';
+
+// Layout component to handle conditional Sidebar/ChatBox rendering
+const Layout = ({ children }) => {
+  const location = useLocation();
+  const hideSidebarRoutes = ['/login', '/create-account'];
+  const shouldHideSidebar = hideSidebarRoutes.includes(location.pathname);
+
+  return (
+    <div className="App">
+      {!shouldHideSidebar && <Sidebar />}
+      <main className="content" style={{ marginLeft: shouldHideSidebar ? '0' : undefined, width: shouldHideSidebar ? '100%' : undefined }}>
+        {children}
+      </main>
+      <ChatBox />
+    </div>
+  );
+};
 
 function App() {
   return (
-    <Router>
-      <div className="App">
-        <nav className="navbar">
-          <div className="nav-brand">FinTech App</div>
-          <div className="nav-links">
-            <Link to="/login" className="nav-link">Login</Link>
-            <Link to="/create-account" className="nav-link">Create Account</Link>
-            <Link to="/deposit" className="nav-link">Deposit</Link>
-            <Link to="/transfer" className="nav-link">Transfer</Link>
-            <Link to="/balance" className="nav-link">Balance</Link>
-            <Link to="/transactions" className="nav-link">History</Link>
-            <Link to="/admin" className="nav-link">Admin</Link>
-          </div>
-        </nav>
-
-        <div className="content">
+    <ThemeProvider>
+      <Router>
+        <Layout>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/create-account" element={<CreateAccount />} />
-            <Route path="/" element={<Login />} /> {/* Default to Login */}
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/notifications" element={<Notifications />} />
+            <Route path="/" element={<Navigate to="/login" replace />} />
+
+            {/* Banking Routes */}
             <Route path="/deposit" element={<Deposit />} />
             <Route path="/transfer" element={<Transfer />} />
             <Route path="/balance" element={<Balance />} />
             <Route path="/transactions" element={<TransactionHistory />} />
-            <Route path="/admin" element={<Admin />} />
           </Routes>
-        </div>
-      </div>
-    </Router>
+        </Layout>
+      </Router>
+    </ThemeProvider>
   );
 }
 
