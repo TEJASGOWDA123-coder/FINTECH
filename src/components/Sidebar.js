@@ -5,7 +5,8 @@ import { useTheme } from '../context/ThemeContext';
 const Sidebar = () => {
     const location = useLocation();
     const { theme, toggleTheme } = useTheme();
-    const [accountNumber, setAccountNumber] = useState(localStorage.getItem('accountNumber') || '');
+    // const [accountNumber, setAccountNumber] = useState(localStorage.getItem('accountNumber') || '');
+    const [accountNumber, setAccountNumber] = useState();
 
     const handleAccountChange = (e) => {
         const newAccount = e.target.value;
@@ -57,10 +58,19 @@ const Sidebar = () => {
 
             <div style={styles.footer}>
                 {footerItems.map((item) => (
-                    <Link key={item.label} to={item.path} style={styles.footerLink}>
+                    <>
+                   
+                    <Link key={item.label} to={item.path}
+                    onClick={()=>{
+                        if(item.label==="Log out"){
+                            localStorage.removeItem('token');
+                        }
+                    }}
+                    style={styles.footerLink}>
                         <span style={styles.footerIcon}>{item.icon}</span>
                         <span style={styles.footerLabel}>{item.label}</span>
                     </Link>
+                    </>
                 ))}
             </div>
 

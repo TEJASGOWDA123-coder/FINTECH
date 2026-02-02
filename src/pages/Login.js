@@ -21,22 +21,22 @@ const Login = () => {
         try {
             // Attempt Login (Backend sets JSESSIONID cookie)
             const data = await loginUser(formData);
-            console.log("Login API Response:", data);
 
-            // Check if backend returned an explicit error (e.g. JSON error)
-            if (data && (data.error || data.status === 'error')) {
-                throw new Error(data.message || data.error || "Login failed");
+            if(data.status==='success'){
+                localStorage.setItem('token',data.token);
+                // window.dispatchEvent(new Event('storage'));
+                navigate('/dashboard');
+            }else{
+                setError("Invalid Credentials or Server Error");
             }
-
-            // Login successful - save account and navigate to dashboard
-            localStorage.setItem('accountNumber', formData.accountNumber);
-            window.dispatchEvent(new Event('storage'));
-            navigate('/dashboard');
+           
 
         } catch (err) {
             console.error('Login Error:', err);
-            const msg = err.response?.data?.message || err.message || 'Invalid Credentials or Server Error';
-            setError(msg);
+            // const msg = err.response?.data?.message || err.message || 'Invalid Credentials or Server Error';
+                            setError("Invalid Credentials or Server Error");
+
+            // setError(msg);
         } finally {
             setLoading(false);
         }

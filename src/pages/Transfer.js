@@ -6,7 +6,6 @@ import '../index.css';
 const Transfer = () => {
     const storedAccount = localStorage.getItem('accountNumber') || 'N/A';
     const [formData, setFormData] = useState({
-        sourceAccountId: storedAccount,
         targetAccountId: '',
         amount: '',
         upiPin: '',

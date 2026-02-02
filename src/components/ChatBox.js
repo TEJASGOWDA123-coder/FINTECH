@@ -9,7 +9,8 @@ const ChatBox = () => {
     const [input, setInput] = useState('');
     const [isThinking, setIsThinking] = useState(false);
     const messagesEndRef = useRef(null);
-    const accountId = localStorage.getItem('accountNumber') || 'anonymous';
+    // const accountId = localStorage.getItem('accountNumber') || 'anonymous';
+    const accountId = ''
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -29,8 +30,11 @@ const ChatBox = () => {
         setIsThinking(true);
 
         try {
-            const response = await sendChatMessage(userMsg, accountId);
-            setMessages(prev => [...prev, { text: response.response, isAi: true }]);
+            const data = await sendChatMessage(userMsg);
+            // console.log(data);
+            setMessages(prev => [...prev, { text: data, isAi: true }]);
+            // const response = await sendChatMessage(userMsg, accountId);
+            // setMessages(prev => [...prev, { text: response.response, isAi: true }]);
         } catch (error) {
             const status = error.response?.status;
             console.log('ChatBox Error:', error.message, status);

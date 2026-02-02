@@ -2,9 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getTransactions } from '../services/api';
 import '../index.css';
+import axios from 'axios';
 
 const Dashboard = () => {
-    const [account, setAccount] = useState(localStorage.getItem('accountNumber') || 'N/A');
+    // const [account, setAccount] = useState(localStorage.getItem('accountNumber') || 'N/A');
+    const [account, setAccount] = useState('');
+
+    const [AccountDetails, setAccountDetails] = useState({});
+
     const [showCardNumber, setShowCardNumber] = useState(false);
     const [transactions, setTransactions] = useState([]);
     const [filteredTransactions, setFilteredTransactions] = useState([]);
@@ -12,21 +17,38 @@ const Dashboard = () => {
     const [loading, setLoading] = useState(false);
     const [timeFilter, setTimeFilter] = useState('12m'); // '7d', '30d', '12m'
 
-    useEffect(() => {
-        const handleStorage = () => {
-            const newAcc = localStorage.getItem('accountNumber') || 'N/A';
-            setAccount(newAcc);
-        };
-        window.addEventListener('storage', handleStorage);
-        return () => window.removeEventListener('storage', handleStorage);
-    }, []);
+    // useEffect(() => {
+    //     const handleStorage = () => {
+    //         const newAcc = localStorage.getItem('accountNumber') || 'N/A';
+    //         setAccount(newAcc);
+    //     };
+    //     window.addEventListener('storage', handleStorage);
+    //     return () => window.removeEventListener('storage', handleStorage);
+    // }, []);
 
-    useEffect(() => {
-        if (account !== 'N/A') {
-            fetchDashboardData(account);
+    const getloginuser =async()=>{
+        const token = localStorage.getItem('token');
+        // http://localhost:8080/loggedin_user
+        const data = await axios.get(`http://localhost:8080/loggedin_user`,{
+            headers :{
+                'Authorization' : `Bearer ${token}`
+            }
+        })
+        // console.log(data);
+        
+        // console.log(data.data.status);
+        
+        if(data.data.status === 'success'){
+            
+            setAccountDetails(data.data.data);
         }
-    }, [account]);
-
+        
+    } 
+    useEffect(() => {
+        getloginuser()
+    
+    },[])
+    
     useEffect(() => {
         const calculateStats = () => {
             const now = new Date();
@@ -60,22 +82,22 @@ const Dashboard = () => {
         calculateStats();
     }, [transactions, timeFilter]);
 
-    const fetchDashboardData = (accId) => {
-        setLoading(true);
-        getTransactions(accId)
-            .then(data => {
-                if (typeof data === 'string' && data.trim().startsWith('<')) {
-                    throw new Error('Authentication failed (HTML response)');
-                }
-                const txns = Array.isArray(data) ? data : [];
-                setTransactions(txns);
-                setLoading(false);
-            })
-            .catch(err => {
-                console.error('Error fetching dashboard data:', err);
-                setLoading(false);
-            });
-    };
+    // const fetchDashboardData = (accId) => {
+    //     setLoading(true);
+    //     getTransactions(accId)
+    //         .then(data => {
+    //             if (typeof data === 'string' && data.trim().startsWith('<')) {
+    //                 throw new Error('Authentication failed (HTML response)');
+    //             }
+    //             const txns = Array.isArray(data) ? data : [];
+    //             setTransactions(txns);
+    //             setLoading(false);
+    //         })
+    //         .catch(err => {
+    //             console.error('Error fetching dashboard data:', err);
+    //             setLoading(false);
+    //         });
+    // };
 
     return (
         <div style={styles.container}>
@@ -97,7 +119,13 @@ const Dashboard = () => {
             <div style={styles.mainHeader}>
                 <div>
                     <h1 style={styles.title}>Banking Dashboard</h1>
-                    <p style={styles.subtitle}>Welcome Back, Account: {account}</p>
+                    {/* <p style={styles.subtitle}>Welcome Back, Account: {account}</p> */}
+                    <p style={styles.subtitle}>Welcome Back: {AccountDetails.username}</p>
+                    
+                    <p style={styles.subtitle}> Account: {AccountDetails.accountNumber}</p>
+
+
+                    
                 </div>
                 <div style={styles.filterTime}>
                     <button
@@ -134,13 +162,15 @@ const Dashboard = () => {
                                 <div style={{ ...styles.cardCircle, backgroundColor: '#f43f5e' }} />
                                 <div style={{ ...styles.cardCircle, backgroundColor: '#fbbf24', marginLeft: '-8px' }} />
                             </div>
+                             <span style={styles.nfcIcon}> Current Ballance </span>
                             <span style={styles.nfcIcon}>📶</span>
                         </div>
 
                         {/* Modified Card Number Section */}
                         <div style={{ ...styles.cardNumber, display: 'flex', alignItems: 'center', gap: '15px' }}>
                             <span style={{ minWidth: '260px', letterSpacing: showCardNumber ? '0.15em' : '0.1em' }}>
-                                {showCardNumber ? '1234 5678 9101 1121' : '••••  ••••  ••••  1121'}
+                                {/* {showCardNumber ? '1234 5678 9101 1121' : '••••  ••••  ••••  1121'} */}
+                                {!showCardNumber? AccountDetails.Currentballance : '••••  ••••'}
                             </span>
                             <button
                                 onClick={() => setShowCardNumber(!showCardNumber)}
@@ -154,9 +184,9 @@ const Dashboard = () => {
                                     opacity: 0.7,
                                     transition: 'opacity 0.2s',
                                     color: 'white'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
-                                onMouseLeave={(e) => e.currentTarget.style.opacity = 0.7}
+                                }}  
+                                // onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                                // onMouseLeave={(e) => e.currentTarget.style.opacity = 0.7}
                                 title={showCardNumber ? "Hide card number" : "Show card number"}
                             >
                                 {showCardNumber ? (
@@ -176,7 +206,7 @@ const Dashboard = () => {
                         <div style={styles.cardFooter}>
                             <div>
                                 <p style={styles.cardLabel}>Card Holder</p>
-                                <p style={styles.cardValue}>Active User</p>
+                                <p style={styles.cardValue}>{AccountDetails.username} </p>
                             </div>
                             <div style={{ textAlign: 'right' }}>
                                 <p style={styles.cardLabel}>Expires</p>

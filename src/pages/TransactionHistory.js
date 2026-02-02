@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { getTransactions } from '../services/api';
 import '../index.css';
+import axios from 'axios';
 
 const TransactionHistory = () => {
     const storedAccount = localStorage.getItem('accountNumber') || '';
@@ -8,32 +9,57 @@ const TransactionHistory = () => {
     const [loading, setLoading] = useState(false);
     const [accountId, setAccountId] = useState(storedAccount);
     const [error, setError] = useState('');
+    const [pin , setPin] = useState('')
 
-    React.useEffect(() => {
-        if (storedAccount) {
-            executeFetch(storedAccount);
+    // React.useEffect(() => {
+    //     if (storedAccount) {
+    //         executeFetch(storedAccount);
+    //     }
+    // }, [storedAccount]);
+
+    // const executeFetch = (id) => {
+    //     setLoading(true);
+    //     setError('');
+    //     getTransactions(id)
+    //         .then(data => {
+    //             const txns = Array.isArray(data) ? data : [];
+    //             setTransactions(txns);
+    //             setLoading(false);
+    //         })
+    //         .catch(err => {
+    //             setError('Failed to load transactions.');
+    //             setLoading(false);
+    //         });
+    // };
+
+    // const fetchTransactions = (e) => {
+    //     if (e) e.preventDefault();
+    //     executeFetch(accountId);
+    // };
+    // console.log({transactions});
+    
+   
+    const handlecheckhistory=()=>{
+        const token = localStorage.getItem('token');
+        const data = axios.get(`http://localhost:8080/transactions?UpiPin=${pin}`,{
+            headers :{
+                'Authorization' : `Bearer ${token}`
+            }
+        })
+        data.then(res=>
+            {
+                setPin('')
+            setError('')
+            if(res.data.status === "success"){
+                setTransactions(res.data.data);
+            }else{
+                setError(res.data.message); 
+            }
         }
-    }, [storedAccount]);
-
-    const executeFetch = (id) => {
-        setLoading(true);
-        setError('');
-        getTransactions(id)
-            .then(data => {
-                const txns = Array.isArray(data) ? data : [];
-                setTransactions(txns);
-                setLoading(false);
-            })
-            .catch(err => {
-                setError('Failed to load transactions.');
-                setLoading(false);
-            });
-    };
-
-    const fetchTransactions = (e) => {
-        if (e) e.preventDefault();
-        executeFetch(accountId);
-    };
+        );
+        
+        
+    }
 
     return (
         <div style={styles.container}>
@@ -41,20 +67,17 @@ const TransactionHistory = () => {
                 <h1 style={styles.header}>Transaction History</h1>
                 <p style={styles.subHeader}>Track your financial activity.</p>
 
-                <form onSubmit={fetchTransactions} style={{ ...styles.form, marginBottom: '2rem' }}>
-                    <div style={styles.inputGroup}>
+                {/* <form onSubmit={fetchTransactions} style={{ ...styles.form, marginBottom: '2rem' }}> */}
+                    <div style={styles.inputGroup} >
                         <label style={styles.label}>Account ID to View</label>
-                        <input
-                            type="text"
-                            value={accountId}
-                            onChange={(e) => setAccountId(e.target.value)}
-                            placeholder="Enter Account ID"
-                            required
-                            readOnly={!!storedAccount}
-                        />
+                       
+                        <input type="text" 
+                        value={pin}
+                        placeholder="Enter  Pin"
+                        onChange={(e)=>setPin(e.target.value)} />
                     </div>
-                    <button type="submit" style={styles.button}>View History</button>
-                </form>
+                    <button type="submit" onClick={()=>handlecheckhistory()} style={styles.button}>View History</button>
+                {/* </form> */}
 
                 {error && <p style={styles.error}>{error}</p>}
 
@@ -75,14 +98,18 @@ const TransactionHistory = () => {
                             <tbody>
                                 {transactions.map((txn) => (
                                     <tr key={txn.id} style={styles.tr}>
-                                        <td style={styles.td}>{txn.date}</td>
-                                        <td style={styles.td}>{txn.type}</td>
-                                        <td style={styles.tdCode}>{txn.id}</td>
+                                        <td style={styles.td}>{txn.transactionDate
+}</td>
+                                        <td style={styles.td}>{txn.transactionType}</td>
+                                        <td style={styles.tdCode}>{txn.
+transaction_id
+}</td>
                                         <td style={styles.td}>
-                                            <span style={getStatusStyle(txn.status)}>{txn.status}</span>
+                                            {/* <span style={getStatusStyle(txn.status)}>{txn.status}</span> */}
+                                            {txn.transactionType}
                                         </td>
-                                        <td style={{ ...styles.tdRight, ...getAmountStyle(txn.amount) }}>
-                                            {txn.amount > 0 ? '+' : ''}{txn.amount.toFixed(2)}
+                                        <td style={{ ...styles.tdRight, ...getAmountStyle(txn.transactionType != 'debit') }}>
+                                            {txn.transactionType === 'debit' ? '-' : '+'}{txn.amount.toFixed(2)}
                                         </td>
                                     </tr>
                                 ))}
@@ -154,7 +181,7 @@ const styles = {
     inputGroup: {
         flex: 1,
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'row',
         gap: '0.5rem',
     },
     label: {

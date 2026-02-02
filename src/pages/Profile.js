@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 
 const Profile = () => {
-    const accountNumber = localStorage.getItem('accountNumber') || 'N/A';
+    // const accountNumber = localStorage.getItem('accountNumber') || 'N/A';
+    const accountNumber =  'N/A';
 
     // Initialize user data from localStorage or defaults
     const [userData, setUserData] = useState(() => {

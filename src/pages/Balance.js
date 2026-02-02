@@ -3,7 +3,9 @@ import { fetchBalance } from '../services/balanceService';
 import '../index.css';
 
 const Balance = () => {
-    const [accountId] = useState(localStorage.getItem('accountNumber') || '');
+    // const [accountId] = useState(localStorage.getItem('accountNumber') || '');
+    const [accountId] = useState('');
+
     const [upiPin, setUpiPin] = useState('');
     const [balance, setBalance] = useState(null);
     const [error, setError] = useState('');

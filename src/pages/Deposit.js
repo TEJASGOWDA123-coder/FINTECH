@@ -3,7 +3,9 @@ import { depositFunds } from '../services/api';
 import '../index.css';
 
 const Deposit = () => {
-    const storedAccount = localStorage.getItem('accountNumber') || '';
+    // const storedAccount = localStorage.getItem('accountNumber') || '';
+    const storedAccount = '';
+
     const [formData, setFormData] = useState({
         accountId: storedAccount,
         amount: '',
