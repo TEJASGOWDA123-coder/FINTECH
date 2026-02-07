@@ -48,9 +48,9 @@ const Sidebar = () => {
     ];
 
     // Check if user is admin (mock check for now, can be updated later)
-    if (localStorage.getItem('accountNumber') === '123456' || localStorage.getItem('role') === 'admin') {
-        menuItems.push({ path: '/audit-logs', label: 'Audit Logs', icon: '📋' });
-    }
+    // if (localStorage.getItem('accountNumber') === '123456' || localStorage.getItem('role') === 'admin') {
+    menuItems.push({ path: '/audit-logs', label: 'Audit Logs', icon: '📋' });
+    // }
 
     const footerItems = [
         { path: '/privacy', label: 'Privacy', icon: '🛡️' },

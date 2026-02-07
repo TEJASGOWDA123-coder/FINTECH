@@ -17,6 +17,7 @@ const Dashboard = () => {
     const [monthlyStats, setMonthlyStats] = useState({});
     const [loading, setLoading] = useState(false);
     const [timeFilter, setTimeFilter] = useState('12m'); // '7d', '30d', '12m'
+    const [searchTerm, setSearchTerm] = useState('');
 
     // useEffect(() => {
     //     const handleStorage = () => {
@@ -79,15 +80,26 @@ const Dashboard = () => {
 
             const filtered = transactions.filter(tx => {
                 const txDate = new Date(tx.timestamp || tx.date);
-                if (isNaN(txDate.getTime())) return true;
+                let matchesTime = true;
 
-                const diffTime = Math.abs(now - txDate);
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                if (!isNaN(txDate.getTime())) {
+                    const diffTime = Math.abs(now - txDate);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-                if (timeFilter === '7d') return diffDays <= 7;
-                if (timeFilter === '30d') return diffDays <= 30;
-                if (timeFilter === '12m') return diffDays <= 365;
-                return true;
+                    if (timeFilter === '7d' && diffDays > 7) matchesTime = false;
+                    if (timeFilter === '30d' && diffDays > 30) matchesTime = false;
+                    if (timeFilter === '12m' && diffDays > 365) matchesTime = false;
+                }
+
+                const term = searchTerm.toLowerCase();
+                const matchesSearch = !term ||
+                    String(tx.type || '').toLowerCase().includes(term) ||
+                    String(tx.receiverAccount || '').includes(term) ||
+                    String(tx.senderAccount || '').includes(term) ||
+                    String(tx.amount || '').includes(term) ||
+                    String(tx.id || '').toLowerCase().includes(term);
+
+                return matchesTime && matchesSearch;
             });
 
             setFilteredTransactions(filtered);
@@ -122,7 +134,7 @@ const Dashboard = () => {
         };
 
         calculateStats();
-    }, [transactions, timeFilter, AccountDetails.accountNumber]);
+    }, [transactions, timeFilter, searchTerm, AccountDetails.accountNumber]);
 
     // const fetchDashboardData = (accId) => {
     //     setLoading(true);
@@ -156,7 +168,13 @@ const Dashboard = () => {
             <header style={styles.topBar}>
                 <div style={styles.searchContainer}>
                     <span style={styles.searchIcon}>🔍</span>
-                    <input type="text" placeholder="Search..." style={styles.searchInput} />
+                    <input
+                        type="text"
+                        placeholder="Search transactions..."
+                        style={styles.searchInput}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
                 </div>
                 <div style={styles.userActions}>
                     <Link to="/notifications" style={styles.notifIcon}>🔔</Link>
