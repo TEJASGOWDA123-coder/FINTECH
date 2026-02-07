@@ -11,7 +11,7 @@
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Light Theme (Default) */
+/* Light Theme (Advanced Glass) */
 [data-theme='light'] {
   --bg-primary: #f8fafc;
   --bg-secondary: #ffffff;
@@ -20,30 +20,30 @@
   --text-secondary: #475569;
   --text-muted: #94a3b8;
   --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(0, 0, 0, 0.05);
+  --glass-border: rgba(0, 0, 0, 0.08);
   --sidebar-active: #e2e8f0;
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
   --card-gradient: linear-gradient(145deg, #ffffff 0%, #f1f5f9 100%);
+  --accent-gradient: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
 }
 
-/* Dark Theme (Current Professional Aesthetic) */
+/* Dark Theme (Cosmic Glass Aesthetic) */
 [data-theme='dark'] {
   --accent-color: #c026d3;
   --bg-primary: #0b0e14;
-  /* Financo dark background */
   --bg-secondary: #121620;
-  /* Card background */
   --bg-tertiary: #1a1f2c;
   --text-primary: #ffffff;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
-  --glass-bg: rgba(26, 31, 44, 0.4);
-  --glass-border: rgba(255, 255, 255, 0.05);
+  --glass-bg: rgba(30, 41, 59, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.08);
   --sidebar-active: #4f46e5;
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
   --card-gradient: linear-gradient(145deg, #121620 0%, #0b0e14 100%);
+  --accent-gradient: linear-gradient(135deg, #4f46e5 0%, #a855f7 50%, #c026d3 100%);
 }
 
 * {
@@ -96,4 +96,10 @@ textarea:focus {
 button {
   cursor: pointer;
   font-family: inherit;
+}
+
+/* Spinner Animation for Loading States */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { sendChatMessage } from '../services/api';
+import { useActions } from '../context/ActionContext';
 
 const ChatBox = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -10,7 +11,7 @@ const ChatBox = () => {
     const [isThinking, setIsThinking] = useState(false);
     const messagesEndRef = useRef(null);
     // const accountId = localStorage.getItem('accountNumber') || 'anonymous';
-    const accountId = ''
+
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -19,6 +20,8 @@ const ChatBox = () => {
     useEffect(() => {
         if (isOpen) scrollToBottom();
     }, [messages, isOpen, isThinking]);
+
+    const { triggerAction } = useActions();
 
     const handleSend = async (e) => {
         e.preventDefault();
@@ -30,11 +33,30 @@ const ChatBox = () => {
         setIsThinking(true);
 
         try {
-            const data = await sendChatMessage(userMsg);
-            // console.log(data);
-            setMessages(prev => [...prev, { text: data, isAi: true }]);
             // const response = await sendChatMessage(userMsg, accountId);
             // setMessages(prev => [...prev, { text: response.response, isAi: true }]);
+            const response = await sendChatMessage(userMsg);
+
+            // --- ACTION PARSING ---
+            // Pattern: [ACTION:TYPE:{json_payload}]
+            const actionRegex = /\[ACTION:(\w+):({.*?})\]/;
+            const match = response.match(actionRegex);
+
+            let cleanResponse = response;
+            if (match) {
+                const actionType = match[1];
+                try {
+                    const payload = JSON.parse(match[2]);
+                    triggerAction(actionType, payload);
+                    // Remove the action tag from the displayed bubble for a cleaner look
+                    cleanResponse = response.replace(actionRegex, '').trim();
+                } catch (parseErr) {
+                    console.error('Failed to parse AI action payload:', parseErr);
+                }
+            }
+            // ----------------------
+
+            setMessages(prev => [...prev, { text: cleanResponse, isAi: true }]);
         } catch (error) {
             const status = error.response?.status;
             console.log('ChatBox Error:', error.message, status);

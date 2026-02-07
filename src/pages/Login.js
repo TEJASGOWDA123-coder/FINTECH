@@ -22,21 +22,19 @@ const Login = () => {
             // Attempt Login (Backend sets JSESSIONID cookie)
             const data = await loginUser(formData);
 
-            if(data.status==='success'){
-                localStorage.setItem('token',data.token);
-                // window.dispatchEvent(new Event('storage'));
+            if (data.status?.toLowerCase() === 'success' || data.token) {
+                if (data.token) localStorage.setItem('token', data.token);
+                localStorage.setItem('accountNumber', formData.accountNumber);
+                window.dispatchEvent(new Event('storage'));
                 navigate('/dashboard');
-            }else{
-                setError("Invalid Credentials or Server Error");
+            } else {
+                setError(`Login Rejected: ${data.message || 'Unknown status mismatch'}`);
             }
-           
-
         } catch (err) {
             console.error('Login Error:', err);
-            // const msg = err.response?.data?.message || err.message || 'Invalid Credentials or Server Error';
-                            setError("Invalid Credentials or Server Error");
-
-            // setError(msg);
+            const status = err.response?.status || 'No Status';
+            const errorData = err.response?.data ? JSON.stringify(err.response.data) : 'No Response Body';
+            setError(`Error ${status}: ${errorData} (${err.message})`);
         } finally {
             setLoading(false);
         }

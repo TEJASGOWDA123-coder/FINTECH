@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { transferFunds } from '../services/api';
+import { transferFunds, searchUsers } from '../services/api';
 import '../index.css';
 
 const Transfer = () => {
@@ -8,11 +8,15 @@ const Transfer = () => {
     const [formData, setFormData] = useState({
         targetAccountId: '',
         amount: '',
-        upiPin: '',
     });
+    const [upiPin, setUpiPin] = useState('');
+    const [showModal, setShowModal] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+    const [showDropdown, setShowDropdown] = useState(false);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -22,19 +26,59 @@ const Transfer = () => {
         }));
     };
 
-    const handleSubmit = async (e) => {
+    const searchAccounts = async (query) => {
+        if (query.length < 3) {
+            setSearchResults([]);
+            setShowDropdown(false);
+            return;
+        }
+
+        try {
+            const results = await searchUsers(query);
+            setSearchResults(results);
+            setShowDropdown(results.length > 0);
+        } catch (error) {
+            console.error('Search failed:', error);
+            setSearchResults([]);
+        }
+    };
+
+    const handleTransferStart = (e) => {
         e.preventDefault();
         setError('');
         setSuccess('');
+        setShowModal(true);
+    };
+
+    const handleConfirmTransfer = async () => {
+        if (upiPin.length !== 6) {
+            setError('Please enter a valid 6-digit UPI PIN');
+            return;
+        }
+
+        const sourceAccountId = storedAccount;
+        if (!sourceAccountId || sourceAccountId === 'N/A') {
+            setError('User not logged in or invalid account.');
+            return;
+        }
+
+        if (!formData.targetAccountId) {
+            setError('Please enter a recipient account number.');
+            return;
+        }
+
+        setShowModal(false);
         setLoading(true);
 
         try {
-            await transferFunds(formData);
-            setSuccess(`Successfully transferred $${formData.amount} to Account ${formData.targetAccountId}`);
-            setFormData({ ...formData, targetAccountId: '', amount: '', upiPin: '' });
+            await transferFunds({ ...formData, sourceAccountId, upiPin });
+            setSuccess(`Successfully transferred ₹${formData.amount} to Account ${formData.targetAccountId}`);
+            setFormData({ ...formData, targetAccountId: '', amount: '' });
+            setSearchQuery('');
+            setUpiPin('');
         } catch (err) {
             console.error('Transfer Failed:', err);
-            setError(err.response?.data?.message || 'Transfer failed. Please check details and balance.');
+            setError(err.response?.data?.error || err.response?.data?.message || 'Transfer failed. Please check details and balance.');
         } finally {
             setLoading(false);
         }
@@ -61,20 +105,46 @@ const Transfer = () => {
                 {/* Transfer Form Card */}
                 <div style={styles.card}>
                     <div style={styles.cardGlow} />
-                    <form onSubmit={handleSubmit} style={styles.form}>
+                    <form onSubmit={handleTransferStart} style={styles.form}>
                         <div style={styles.inputSection}>
                             <label style={styles.label}>Recipient Account</label>
-                            <div style={styles.inputWrapper}>
+                            <div style={{ ...styles.inputWrapper, position: 'relative' }}>
                                 <span style={styles.inputIcon}>🆔</span>
                                 <input
                                     type="text"
                                     name="targetAccountId"
-                                    value={formData.targetAccountId}
-                                    onChange={handleChange}
-                                    placeholder="Enter recipient's account ID"
+                                    value={searchQuery}
+                                    onChange={(e) => {
+                                        setSearchQuery(e.target.value);
+                                        setFormData(prev => ({ ...prev, targetAccountId: e.target.value }));
+                                        searchAccounts(e.target.value);
+                                    }}
+                                    onFocus={() => searchQuery.length >= 3 && setShowDropdown(true)}
+                                    placeholder="Search by account or phone"
                                     style={styles.input}
                                     required
+                                    autoComplete="off"
                                 />
+                                {showDropdown && (
+                                    <div style={styles.dropdown}>
+                                        {searchResults.map((user) => (
+                                            <div
+                                                key={user.accountNumber}
+                                                onClick={() => {
+                                                    setFormData(prev => ({ ...prev, targetAccountId: user.accountNumber }));
+                                                    setSearchQuery(user.accountNumber);
+                                                    setShowDropdown(false);
+                                                }}
+                                                style={styles.dropdownItem}
+                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
+                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                            >
+                                                <div style={styles.dropdownAcc}>{user.accountNumber}</div>
+                                                <div style={styles.dropdownPhone}>{user.phoneNumber}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -90,23 +160,6 @@ const Transfer = () => {
                                     placeholder="0.00"
                                     min="0.01"
                                     step="0.01"
-                                    style={styles.input}
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        <div style={styles.inputSection}>
-                            <label style={styles.label}>UPI PIN</label>
-                            <div style={styles.inputWrapper}>
-                                <span style={styles.inputIcon}>🔒</span>
-                                <input
-                                    type="password"
-                                    name="upiPin"
-                                    value={formData.upiPin}
-                                    onChange={handleChange}
-                                    placeholder="Enter 6-digit security PIN"
-                                    maxLength="6"
                                     style={styles.input}
                                     required
                                 />
@@ -153,6 +206,33 @@ const Transfer = () => {
                     </div>
                 </div>
             </div>
+
+            {/* UPI PIN Modal */}
+            {showModal && (
+                <div style={styles.modalOverlay}>
+                    <div style={styles.modalContent}>
+                        <h2 style={styles.modalTitle}>Enter UPI PIN</h2>
+                        <p style={styles.modalSubtitle}>Please enter your 6-digit security PIN to authorize today's transfer of ${formData.amount}.</p>
+
+                        <div style={styles.inputSection}>
+                            <input
+                                type="password"
+                                value={upiPin}
+                                onChange={(e) => setUpiPin(e.target.value)}
+                                placeholder="••••••"
+                                maxLength="6"
+                                style={{ ...styles.input, textAlign: 'center', letterSpacing: '0.5em', fontSize: '1.5rem' }}
+                                autoFocus
+                            />
+                        </div>
+
+                        <div style={styles.modalActions}>
+                            <button onClick={() => setShowModal(false)} style={styles.cancelBtn}>Cancel</button>
+                            <button onClick={handleConfirmTransfer} style={styles.confirmBtn}>Confirm & Pay</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -347,6 +427,103 @@ const styles = {
         color: 'var(--text-secondary)',
         margin: 0,
         lineHeight: '1.5',
+    },
+    modalOverlay: {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        backdropFilter: 'blur(8px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+    },
+    modalContent: {
+        backgroundColor: 'var(--bg-secondary)',
+        borderRadius: '24px',
+        padding: '3rem',
+        width: '100%',
+        maxWidth: '450px',
+        border: '1px solid var(--glass-border)',
+        boxShadow: 'var(--shadow-lg)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1.5rem',
+        textAlign: 'center',
+    },
+    modalTitle: {
+        fontSize: '1.5rem',
+        fontWeight: '900',
+        color: 'var(--text-primary)',
+        margin: 0,
+    },
+    modalSubtitle: {
+        fontSize: '0.9rem',
+        color: 'var(--text-muted)',
+        lineHeight: '1.6',
+        margin: 0,
+    },
+    modalActions: {
+        display: 'flex',
+        gap: '1rem',
+        marginTop: '1rem',
+    },
+    cancelBtn: {
+        flex: 1,
+        height: '50px',
+        borderRadius: '12px',
+        border: '1px solid var(--glass-border)',
+        backgroundColor: 'var(--bg-tertiary)',
+        color: 'var(--text-primary)',
+        fontWeight: '700',
+        cursor: 'pointer',
+        transition: 'var(--transition)',
+    },
+    confirmBtn: {
+        flex: 2,
+        height: '50px',
+        borderRadius: '12px',
+        border: 'none',
+        backgroundColor: 'var(--primary-color)',
+        color: 'white',
+        fontWeight: '800',
+        cursor: 'pointer',
+        transition: 'var(--transition)',
+        boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)',
+    },
+    dropdown: {
+        position: 'absolute',
+        top: '100%',
+        left: 0,
+        right: 0,
+        backgroundColor: 'var(--bg-secondary)',
+        border: '1px solid var(--glass-border)',
+        borderRadius: '12px',
+        marginTop: '8px',
+        maxHeight: '200px',
+        overflowY: 'auto',
+        zIndex: 1000,
+        boxShadow: 'var(--shadow-lg)',
+        backdropFilter: 'blur(10px)',
+    },
+    dropdownItem: {
+        padding: '12px 16px',
+        cursor: 'pointer',
+        borderBottom: '1px solid var(--glass-border)',
+        transition: 'var(--transition)',
+        textAlign: 'left',
+    },
+    dropdownAcc: {
+        fontWeight: '700',
+        color: 'var(--text-primary)',
+        fontSize: '0.95rem',
+    },
+    dropdownPhone: {
+        fontSize: '0.8rem',
+        color: 'var(--text-muted)',
     },
 };
 

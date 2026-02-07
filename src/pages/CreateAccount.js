@@ -14,10 +14,12 @@ const CreateAccount = () => {
         aadharNumber: '',
         panNumber: '',
         password: '',
+        upiPin: '',
         accountType: 'Savings',
         initialDeposit: '',
     });
     const [error, setError] = useState('');
+    const [successData, setSuccessData] = useState(null); // { accountNumber: '...' }
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -34,13 +36,18 @@ const CreateAccount = () => {
 
         createAccount(formData)
             .then(response => {
-                if(response.status === "success"){
-                    localStorage.setItem('token',response.token);
-                    navigate('/dashboard');
-                }else{
-                   setError(response.message); 
+                console.log('Account Created:', response);
+
+                // Assuming backend returns { success: true, accountNumber: "..." }
+                // or if it's a redirect, we might have it in the response data or headers if the proxy handled it.
+                const accNum = response.accountNumber || (response.data && response.data.accountNumber);
+
+                if (accNum) {
+                    setSuccessData({ accountNumber: accNum });
+                } else {
+                    alert(`Account Creation Request Sent! \nIf successful, you can now login with your password.`);
+                    navigate('/login');
                 }
-                
             })
             .catch(err => {
                 console.error('Creation Failed:', err);
@@ -58,151 +65,179 @@ const CreateAccount = () => {
 
                 {error && <div style={styles.error}>{error}</div>}
 
-                <form onSubmit={handleSubmit} style={styles.form}>
-                    <div style={styles.row}>
+                {successData ? (
+                    <div style={styles.successCard}>
+                        <div style={styles.successIcon}>✅</div>
+                        <h2 style={styles.successTitle}>Account Created!</h2>
+                        <p style={styles.successText}>Please note down your account number for logging in:</p>
+                        <div style={styles.accountNumberDisplay}>{successData.accountNumber}</div>
+                        <button onClick={() => navigate('/login')} style={styles.button}>
+                            Go to Login
+                        </button>
+                    </div>
+                ) : (
+                    <form onSubmit={handleSubmit} style={styles.form}>
+                        <div style={styles.row}>
+                            <div style={styles.inputGroup}>
+                                <label style={styles.label}>Username</label>
+                                <input
+                                    type="text"
+                                    name="username"
+                                    value={formData.username}
+                                    onChange={handleChange}
+                                    placeholder="johndoe123"
+                                    style={styles.input}
+                                    required
+                                />
+                            </div>
+                            <div style={styles.inputGroup}>
+                                <label style={styles.label}>Phone Number</label>
+                                <input
+                                    type="tel"
+                                    name="phoneNumber"
+                                    value={formData.phoneNumber}
+                                    onChange={handleChange}
+                                    placeholder="+1 234 567 8900"
+                                    style={styles.input}
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div style={styles.row}>
+                            <div style={styles.inputGroup}>
+                                <label style={styles.label}>Date of Birth</label>
+                                <input
+                                    type="date"
+                                    name="dob"
+                                    value={formData.dob}
+                                    onChange={handleChange}
+                                    style={styles.input}
+                                    required
+                                />
+                            </div>
+                            <div style={styles.inputGroup}>
+                                <label style={styles.label}>Account Type</label>
+                                <select
+                                    name="accountType"
+                                    value={formData.accountType}
+                                    onChange={handleChange}
+                                    style={styles.input}
+                                >
+                                    <option value="Savings">Savings Account</option>
+                                    <option value="Current">Current Account</option>
+                                    <option value="Business">Business Account</option>
+                                </select>
+                            </div>
+                        </div>
+
                         <div style={styles.inputGroup}>
-                            <label style={styles.label}>Username</label>
+                            <label style={styles.label}>Email Address</label>
                             <input
-                                type="text"
-                                name="username"
-                                value={formData.username}
+                                type="email"
+                                name="email"
+                                value={formData.email}
                                 onChange={handleChange}
-                                placeholder="johndoe123"
+                                placeholder="john@example.com"
                                 style={styles.input}
                                 required
                             />
                         </div>
+
                         <div style={styles.inputGroup}>
-                            <label style={styles.label}>Phone Number</label>
-                            <input
-                                type="tel"
-                                name="phoneNumber"
-                                value={formData.phoneNumber}
+                            <label style={styles.label}>Address</label>
+                            <textarea
+                                name="address"
+                                value={formData.address}
                                 onChange={handleChange}
-                                placeholder="+1 234 567 8900"
+                                placeholder="123 FinTech Ave, New York, NY"
+                                rows="2"
                                 style={styles.input}
                                 required
                             />
                         </div>
-                    </div>
 
-                    <div style={styles.row}>
-                        <div style={styles.inputGroup}>
-                            <label style={styles.label}>Date of Birth</label>
-                            <input
-                                type="date"
-                                name="dob"
-                                value={formData.dob}
-                                onChange={handleChange}
-                                style={styles.input}
-                                required
-                            />
+                        <div style={styles.row}>
+                            <div style={styles.inputGroup}>
+                                <label style={styles.label}>Aadhar Number</label>
+                                <input
+                                    type="text"
+                                    name="aadharNumber"
+                                    value={formData.aadharNumber}
+                                    onChange={handleChange}
+                                    placeholder="1234 5678 9012"
+                                    style={styles.input}
+                                    required
+                                />
+                            </div>
+                            <div style={styles.inputGroup}>
+                                <label style={styles.label}>PAN Number</label>
+                                <input
+                                    type="text"
+                                    name="panNumber"
+                                    value={formData.panNumber}
+                                    onChange={handleChange}
+                                    placeholder="ABCDE1234F"
+                                    style={styles.input}
+                                    required
+                                />
+                            </div>
                         </div>
-                        <div style={styles.inputGroup}>
-                            <label style={styles.label}>Account Type</label>
-                            <select
-                                name="accountType"
-                                value={formData.accountType}
-                                onChange={handleChange}
-                                style={styles.input}
-                            >
-                                <option value="Savings">Savings Account</option>
-                                <option value="Current">Current Account</option>
-                                <option value="Business">Business Account</option>
-                            </select>
+
+                        <div style={styles.row}>
+                            <div style={styles.inputGroup}>
+                                <label style={styles.label}>Password</label>
+                                <input
+                                    type="password"
+                                    name="password"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    placeholder="••••••••"
+                                    style={styles.input}
+                                    required
+                                />
+                            </div>
+                            <div style={styles.inputGroup}>
+                                <label style={styles.label}>Initial Deposit ($)</label>
+                                <input
+                                    type="number"
+                                    name="initialDeposit"
+                                    value={formData.initialDeposit}
+                                    onChange={handleChange}
+                                    placeholder="0.00"
+                                    min="0"
+                                    style={styles.input}
+                                    required
+                                />
+                            </div>
                         </div>
-                    </div>
 
-                    <div style={styles.inputGroup}>
-                        <label style={styles.label}>Email Address</label>
-                        <input
-                            type="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={handleChange}
-                            placeholder="john@example.com"
-                            style={styles.input}
-                            required
-                        />
-                    </div>
-
-                    <div style={styles.inputGroup}>
-                        <label style={styles.label}>Address</label>
-                        <textarea
-                            name="address"
-                            value={formData.address}
-                            onChange={handleChange}
-                            placeholder="123 FinTech Ave, New York, NY"
-                            rows="2"
-                            style={styles.input}
-                            required
-                        />
-                    </div>
-
-                    <div style={styles.row}>
                         <div style={styles.inputGroup}>
-                            <label style={styles.label}>Aadhar Number</label>
-                            <input
-                                type="text"
-                                name="aadharNumber"
-                                value={formData.aadharNumber}
-                                onChange={handleChange}
-                                placeholder="1234 5678 9012"
-                                style={styles.input}
-                                required
-                            />
-                        </div>
-                        <div style={styles.inputGroup}>
-                            <label style={styles.label}>PAN Number</label>
-                            <input
-                                type="text"
-                                name="panNumber"
-                                value={formData.panNumber}
-                                onChange={handleChange}
-                                placeholder="ABCDE1234F"
-                                style={styles.input}
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <div style={styles.row}>
-                        <div style={styles.inputGroup}>
-                            <label style={styles.label}>Password</label>
+                            <label style={styles.label}>Create UPI PIN (6 digits)</label>
                             <input
                                 type="password"
-                                name="password"
-                                value={formData.password}
+                                name="upiPin"
+                                value={formData.upiPin}
                                 onChange={handleChange}
-                                placeholder="••••••••"
+                                placeholder="e.g. 123456"
+                                maxLength="6"
+                                pattern="\d{4,6}"
+                                title="Enter a 4-6 digit numeric PIN"
                                 style={styles.input}
                                 required
                             />
                         </div>
-                        <div style={styles.inputGroup}>
-                            <label style={styles.label}>Initial Deposit ($)</label>
-                            <input
-                                type="number"
-                                name="initialDeposit"
-                                value={formData.initialDeposit}
-                                onChange={handleChange}
-                                placeholder="0.00"
-                                min="0"
-                                style={styles.input}
-                                required
-                            />
+
+                        <button type="submit" style={styles.button}>
+                            Create Account
+                        </button>
+
+                        <div style={styles.footer}>
+                            <p style={styles.footerText}>Already have an account?</p>
+                            <Link to="/login" style={styles.link}>Sign In</Link>
                         </div>
-                    </div>
-
-                    <button type="submit" style={styles.button}>
-                        Create Account
-                    </button>
-
-                    <div style={styles.footer}>
-                        <p style={styles.footerText}>Already have an account?</p>
-                        <Link to="/login" style={styles.link}>Sign In</Link>
-                    </div>
-                </form>
+                    </form>
+                )}
             </div>
             <style>{`
                 @keyframes fadeInUp {
@@ -320,6 +355,37 @@ const styles = {
         color: '#818cf8',
         textDecoration: 'none',
         fontWeight: '600',
+    },
+    successCard: {
+        textAlign: 'center',
+        padding: '2rem',
+        animation: 'fadeInUp 0.6s ease-out',
+    },
+    successIcon: {
+        fontSize: '4rem',
+        marginBottom: '1rem',
+    },
+    successTitle: {
+        fontSize: '2rem',
+        color: '#ffffff',
+        marginBottom: '1rem',
+    },
+    successText: {
+        color: '#94a3b8',
+        marginBottom: '1.5rem',
+        fontSize: '1.1rem',
+    },
+    accountNumberDisplay: {
+        background: 'rgba(99, 102, 241, 0.1)',
+        border: '2px dashed #6366f1',
+        borderRadius: '12px',
+        padding: '1.5rem',
+        fontSize: '2.5rem',
+        fontWeight: 'bold',
+        color: '#ffffff',
+        letterSpacing: '0.2em',
+        marginBottom: '2rem',
+        fontFamily: 'monospace',
     }
 };
 

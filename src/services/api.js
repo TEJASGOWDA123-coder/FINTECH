@@ -1,10 +1,8 @@
 import axios from 'axios';
-// import { GoogleGenerativeAI } from "@google/generative-ai";
-import { GoogleGenAI } from "@google/genai";
+axios.defaults.withCredentials = true;
 
 // React proxy (in package.json) will forward requests to http://localhost:8080
 const API_URL = '';
-const GEMINI_API_KEY = process.env.REACT_APP_GEMINI_API_KEY;
 
 const api = axios.create({
     baseURL: API_URL,
@@ -12,14 +10,14 @@ const api = axios.create({
     // Headers are handled automatically by Axios for URLSearchParams
 });
 
-const token = localStorage.getItem('token');
+
 
 export const loginUser = async (credentials) => {
     try {
         const response = await axios.post(
-            'http://localhost:8080/login',
+            '/login',
             {
-                AccountNumber: credentials.accountNumber,
+                accountNumber: credentials.accountNumber,
                 password: credentials.password
             },
             {
@@ -33,15 +31,16 @@ export const loginUser = async (credentials) => {
 };
 
 export const createAccount = async (accountData) => {
-    const payload = {...accountData,
-        AadharNumber : accountData.aadharNumber,
-        DOB : accountData.dob
+    const payload = {
+        ...accountData,
+        AadharNumber: accountData.aadharNumber,
+        DOB: accountData.dob
     }
     try {
         const response = await axios.post(
-            'http://localhost:8080/CreateAccount',
+            '/createAccount',
             payload,
-           
+            { withCredentials: true }
         );
         return response.data;
     } catch (error) {
@@ -52,7 +51,7 @@ export const createAccount = async (accountData) => {
 export const depositFunds = async (data) => {
     try {
         const response = await axios.post(
-            'http://localhost:8080/api/deposit',
+            '/api/deposit',
             {
                 accountId: data.accountId,
                 amount: data.amount
@@ -69,38 +68,37 @@ export const depositFunds = async (data) => {
 
 export const transferFunds = async (data) => {
     try {
-        
+        console.log('Transfer Payload:', {
+            fromAccount: data.sourceAccountId,
+            toAccount: data.targetAccountId,
+            amount: Number(data.amount),
+            upiPin: data.upiPin
+        });
         const response = await axios.post(
-            'http://localhost:8080/transfer-money',
+            '/api/transfer',
             {
-                targetAccountId: data.targetAccountId,
-                amount: data.amount,
+                fromAccount: data.sourceAccountId,
+                toAccount: data.targetAccountId,
+                amount: Number(data.amount),
                 upiPin: data.upiPin
             },
             {
-                headers:{
-                    Authorization : `Bearer ${token}`
-                    
-                }
+                withCredentials: true // 🔥 REQUIRED to send session cookie
             }
         );
         return response.data;
-    } catch (error) {
-        throw error;
+    } catch (err) {
+        console.error('Transfer Failed:', err);
+        throw err;
     }
 };
 
 export const getBalance = async (accountId, upiPin) => {
     try {
         const response = await axios.get(
-            `http://localhost:8080/api/balance?accountId=${accountId}&upiPin=${upiPin}`,
+            `/api/balance?accountId=${accountId}&upiPin=${upiPin}`,
             {
                 withCredentials: true
-            },
-            {
-                headers : {
-                    Autherization : `Bearer ${token}`
-                }
             }
         );
         return response.data;
@@ -112,7 +110,7 @@ export const getBalance = async (accountId, upiPin) => {
 export const getTransactions = async (accountId) => {
     try {
         const response = await axios.get(
-            `http://localhost:8080/api/transactions?accountId=${accountId}`,
+            `/api/transactions?accountId=${accountId}`,
             {
                 withCredentials: true
             }
@@ -123,50 +121,144 @@ export const getTransactions = async (accountId) => {
     }
 };
 
-// const genAI = new GoogleGenerativeAI(`${GEMINI_API_KEY}`);
-const ai = new GoogleGenAI({apiKey : 'AIzaSyCk0AMRNT4Fg_GpBQMxlz6Ixe-BmfxvPSI'});
-
-const SYSTEM_PROMPT = `
-You are a virtual assistant for Fintech Bank.
-
-Rules:
-- Answer ONLY questions related to Fintech Bank services.
-- If the question is not related to banking or Fintech Bank, politely refuse.
-- Keep responses concise and under 30 words.
-- If qustion is not you know then you can reply in short 8-9 words  like this information is not feeded like this.
-- Be professional, clear, and helpful.
-- When asked about account creation, always provide this link:
-  https://fintechbank.com/create-account
-- When details are missing, ask a clarifying question.
-- Do not hallucinate policies or offers.
-`;
-
-export const sendChatMessage = async (message, accountId) => {
+export const searchUsers = async (query) => {
     try {
-            const res =    await ai.models.generateContent({
-                    model: "gemini-3-flash-preview",
-                    contents: [
-                        {
-                        role: "system",
-                        parts: [{ text: SYSTEM_PROMPT }]
-                        },
-                        {
-                        role: "user",
-                        parts: [{ text: message }]
-                        }
-                    ]
-                });                
-     
-                const reply =
-                res.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    return reply;
-      
+        const response = await axios.get(
+            `/api/search-user?query=${query}`,
+            {
+                withCredentials: true
+            }
+        );
+        return response.data;
     } catch (error) {
-        console.error("Gemini API Error:", error.message);
         throw error;
     }
 };
 
+export const sendChatMessage = async (message) => {
+    try {
+        const response = await axios.post(
+            '/api/chat',
+            {
+                message: message
+            },
+            {
+                withCredentials: true
+            }
+        );
+        return response.data.response; // Returns the AI response
+    } catch (error) {
+        console.error("AI Chat Error:", error.message);
+        throw error;
+    }
+};
+
+
+export const downloadStatement = async () => {
+    try {
+        const response = await axios.get('/api/statements/monthly', {
+            responseType: 'blob',
+            withCredentials: true
+        });
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'monthly_statement.pdf');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    } catch (error) {
+        console.error("Statement Download Error:", error.message);
+        throw error;
+    }
+};
+
+export const getAuditLogs = async () => {
+    try {
+        const response = await axios.get('/api/audit/logs', {
+            withCredentials: true
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Audit Logs Error:", error.message);
+        throw error;
+    }
+};
+
+export const buyStock = async (data) => {
+    try {
+        const response = await axios.post('/api/trade/buy', data, {
+            withCredentials: true
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Buy Stock Error:", error.message);
+        throw error;
+    }
+};
+
+export const sellStock = async (data) => {
+    try {
+        const response = await axios.post('/api/trade/sell', data, {
+            withCredentials: true
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Sell Stock Error:", error.message);
+        throw error;
+    }
+};
+export const getPortfolio = async (accountId) => {
+    try {
+        const id = accountId || localStorage.getItem('accountNumber');
+        const response = await axios.get(`/api/portfolio?accountId=${id}`, {
+            withCredentials: true
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Get Portfolio Error:", error.message);
+        throw error;
+    }
+};
+
+// Notification APIs
+export const getNotifications = async (accountId) => {
+    try {
+        const id = accountId || localStorage.getItem('accountNumber');
+        const response = await axios.get(`/api/notifications?accountId=${id}`, {
+            withCredentials: true
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Get Notifications Error:", error.message);
+        throw error;
+    }
+};
+
+export const markNotificationRead = async (notificationId, accountId) => {
+    try {
+        const id = accountId || localStorage.getItem('accountNumber');
+        const response = await axios.post(`/api/notifications/mark-read/${notificationId}?accountId=${id}`, {}, {
+            withCredentials: true
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Mark Notification Read Error:", error.message);
+        throw error;
+    }
+};
+
+export const getUnreadNotificationCount = async (accountId) => {
+    try {
+        const id = accountId || localStorage.getItem('accountNumber');
+        const response = await axios.get(`/api/notifications/unread-count?accountId=${id}`, {
+            withCredentials: true
+        });
+        return response.data.count;
+    } catch (error) {
+        console.error("Get Unread Count Error:", error.message);
+        throw error;
+    }
+};
 
 export default api;

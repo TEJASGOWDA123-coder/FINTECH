@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getTransactions } from '../services/api';
 import '../index.css';
 import axios from 'axios';
+import { downloadStatement, getTransactions } from '../services/api';
 
 const Dashboard = () => {
     // const [account, setAccount] = useState(localStorage.getItem('accountNumber') || 'N/A');
-    const [account, setAccount] = useState('');
+
 
     const [AccountDetails, setAccountDetails] = useState({});
 
@@ -14,6 +14,7 @@ const Dashboard = () => {
     const [transactions, setTransactions] = useState([]);
     const [filteredTransactions, setFilteredTransactions] = useState([]);
     const [stats, setStats] = useState({ income: 0, expends: 0 });
+    const [monthlyStats, setMonthlyStats] = useState({});
     const [loading, setLoading] = useState(false);
     const [timeFilter, setTimeFilter] = useState('12m'); // '7d', '30d', '12m'
 
@@ -26,34 +27,58 @@ const Dashboard = () => {
     //     return () => window.removeEventListener('storage', handleStorage);
     // }, []);
 
-    const getloginuser =async()=>{
-        const token = localStorage.getItem('token');
-        // http://localhost:8080/loggedin_user
-        const data = await axios.get(`http://localhost:8080/loggedin_user`,{
-            headers :{
-                'Authorization' : `Bearer ${token}`
+    const getloginuser = async () => {
+        try {
+            // /loggedin_user
+            const data = await axios.get(`/loggedin_user`, {
+                withCredentials: true
+            });
+
+            if (data.data.status === 'success') {
+                console.log('Logged in user data:', data.data.data);
+                setAccountDetails(data.data.data);
+                // Sync localStorage to keep Sidebar and other components updated
+                if (data.data.data.accountNumber) {
+                    localStorage.setItem('accountNumber', data.data.data.accountNumber);
+                    window.dispatchEvent(new Event('storage'));
+                }
             }
-        })
-        // console.log(data);
-        
-        // console.log(data.data.status);
-        
-        if(data.data.status === 'success'){
-            
-            setAccountDetails(data.data.data);
+        } catch (error) {
+            console.error("Failed to check login status:", error);
         }
-        
-    } 
+    }
+    const fetchDashboardData = (accNum) => {
+        if (!accNum) return;
+        setLoading(true);
+        getTransactions(accNum)
+            .then(data => {
+                const txns = Array.isArray(data) ? data : [];
+                setTransactions(txns);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error('Error fetching dashboard data:', err);
+                setLoading(false);
+            });
+    };
+
     useEffect(() => {
-        getloginuser()
-    
-    },[])
-    
+        getloginuser();
+    }, []);
+
+    useEffect(() => {
+        if (AccountDetails.accountNumber) {
+            fetchDashboardData(AccountDetails.accountNumber);
+        }
+    }, [AccountDetails.accountNumber]);
+
     useEffect(() => {
         const calculateStats = () => {
             const now = new Date();
+            const currentAcc = String(AccountDetails.accountNumber || '').trim();
+
             const filtered = transactions.filter(tx => {
-                const txDate = new Date(tx.date);
+                const txDate = new Date(tx.timestamp || tx.date);
                 if (isNaN(txDate.getTime())) return true;
 
                 const diffTime = Math.abs(now - txDate);
@@ -69,18 +94,35 @@ const Dashboard = () => {
 
             let incomeSum = 0;
             let expendsSum = 0;
+            const monthlyData = {};
+
             filtered.forEach(tx => {
-                if (tx.amount > 0) {
-                    incomeSum += tx.amount;
-                } else {
-                    expendsSum += Math.abs(tx.amount);
+                const amount = Math.abs(tx.amount || 0);
+                const isReceiver = String(tx.receiverAccount || '').trim() === currentAcc;
+                const isSender = String(tx.senderAccount || '').trim() === currentAcc;
+                const txDate = new Date(tx.timestamp || tx.date);
+                const month = txDate.toLocaleString('default', { month: 'short' });
+
+                if (!monthlyData[month]) {
+                    monthlyData[month] = { income: 0, expends: 0 };
+                }
+
+                if (isReceiver) {
+                    incomeSum += amount;
+                    monthlyData[month].income += amount;
+                } else if (isSender) {
+                    expendsSum += amount;
+                    monthlyData[month].expends += amount;
                 }
             });
+
+            console.log('Dashboard Stats Updated:', { incomeSum, expendsSum, monthlyData, currentAcc });
             setStats({ income: incomeSum, expends: expendsSum });
+            setMonthlyStats(monthlyData);
         };
 
         calculateStats();
-    }, [transactions, timeFilter]);
+    }, [transactions, timeFilter, AccountDetails.accountNumber]);
 
     // const fetchDashboardData = (accId) => {
     //     setLoading(true);
@@ -98,6 +140,15 @@ const Dashboard = () => {
     //             setLoading(false);
     //         });
     // };
+    const formatCardNumber = (accNum, show) => {
+        if (!accNum) return '••••  ••••  ••••  ••••';
+        const str = accNum.toString().padStart(10, '0');
+        const cardNum = '541275' + str;
+        if (show) {
+            return cardNum.replace(/\d{4}(?=.)/g, '$& ');
+        }
+        return `••••  ••••  ••••  ${cardNum.slice(-4)}`;
+    };
 
     return (
         <div style={styles.container}>
@@ -120,14 +171,24 @@ const Dashboard = () => {
                 <div>
                     <h1 style={styles.title}>Banking Dashboard</h1>
                     {/* <p style={styles.subtitle}>Welcome Back, Account: {account}</p> */}
-                    <p style={styles.subtitle}>Welcome Back: {AccountDetails.username}</p>
-                    
-                    <p style={styles.subtitle}> Account: {AccountDetails.accountNumber}</p>
-
-
-                    
+                    <p style={styles.subtitle}>Welcome Back: {AccountDetails.username || 'User'}</p>
+                    <p style={styles.subtitle}>Account: {AccountDetails.accountNumber}</p>
                 </div>
+
                 <div style={styles.filterTime}>
+                    <button
+                        onClick={async () => {
+                            try {
+                                await downloadStatement();
+                                alert('Statement download started.');
+                            } catch (err) {
+                                alert('Failed to download statement.');
+                            }
+                        }}
+                        style={styles.timeBtn}
+                    >
+                        📄 Download Statement
+                    </button>
                     <button
                         onClick={() => setTimeFilter('12m')}
                         style={timeFilter === '12m' ? styles.timeBtnActive : styles.timeBtn}
@@ -162,15 +223,14 @@ const Dashboard = () => {
                                 <div style={{ ...styles.cardCircle, backgroundColor: '#f43f5e' }} />
                                 <div style={{ ...styles.cardCircle, backgroundColor: '#fbbf24', marginLeft: '-8px' }} />
                             </div>
-                             <span style={styles.nfcIcon}> Current Ballance </span>
+                            <span style={styles.nfcIcon}>Primary Card</span>
                             <span style={styles.nfcIcon}>📶</span>
                         </div>
 
                         {/* Modified Card Number Section */}
                         <div style={{ ...styles.cardNumber, display: 'flex', alignItems: 'center', gap: '15px' }}>
                             <span style={{ minWidth: '260px', letterSpacing: showCardNumber ? '0.15em' : '0.1em' }}>
-                                {/* {showCardNumber ? '1234 5678 9101 1121' : '••••  ••••  ••••  1121'} */}
-                                {!showCardNumber? AccountDetails.Currentballance : '••••  ••••'}
+                                {formatCardNumber(AccountDetails.accountNumber, showCardNumber)}
                             </span>
                             <button
                                 onClick={() => setShowCardNumber(!showCardNumber)}
@@ -184,7 +244,7 @@ const Dashboard = () => {
                                     opacity: 0.7,
                                     transition: 'opacity 0.2s',
                                     color: 'white'
-                                }}  
+                                }}
                                 // onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
                                 // onMouseLeave={(e) => e.currentTarget.style.opacity = 0.7}
                                 title={showCardNumber ? "Hide card number" : "Show card number"}
@@ -251,15 +311,23 @@ const Dashboard = () => {
                 <div style={styles.chartSection}>
                     <p style={styles.sectionLabel}>Money Flow</p>
                     <div style={styles.barChartContainer}>
-                        {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(month => (
-                            <div key={month} style={styles.barGroup}>
-                                <div style={styles.barStack}>
-                                    <div style={{ ...styles.barSegment, height: `${month === new Date().toLocaleString('default', { month: 'short' }) ? (stats.income > 0 ? 50 : 10) : Math.random() * 40 + 20}%`, backgroundColor: '#818cf8' }} />
-                                    <div style={{ ...styles.barSegment, height: `${month === new Date().toLocaleString('default', { month: 'short' }) ? (stats.expends > 0 ? 30 : 5) : Math.random() * 20 + 10}%`, backgroundColor: '#4f46e5' }} />
+                        {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(month => {
+                            const data = monthlyStats[month] || { income: 0, expends: 0 };
+                            // Calculate height relative to a max value for better scaling
+                            const maxVal = Math.max(...Object.values(monthlyStats).map(s => s.income + s.expends), 100);
+                            const incomeHeight = (data.income / maxVal) * 80; // 80% max height
+                            const expendsHeight = (data.expends / maxVal) * 80;
+
+                            return (
+                                <div key={month} style={styles.barGroup}>
+                                    <div style={styles.barStack}>
+                                        <div style={{ ...styles.barSegment, height: `${incomeHeight}%`, backgroundColor: '#818cf8', display: data.income > 0 ? 'block' : 'none' }} />
+                                        <div style={{ ...styles.barSegment, height: `${expendsHeight}%`, backgroundColor: '#4f46e5', display: data.expends > 0 ? 'block' : 'none' }} />
+                                    </div>
+                                    <span style={styles.barLabel}>{month}</span>
                                 </div>
-                                <span style={styles.barLabel}>{month}</span>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
 
@@ -270,27 +338,32 @@ const Dashboard = () => {
                         {loading ? (
                             <p style={{ color: 'var(--text-muted)', textAlign: 'center' }}>Loading...</p>
                         ) : filteredTransactions.length > 0 ? (
-                            filteredTransactions.slice(0, 5).map((tx, i) => (
-                                <div key={i} style={styles.txItem}>
-                                    <div style={styles.txIcon}>
-                                        <div style={{ ...styles.cardCircle, backgroundColor: tx.amount > 0 ? '#10b981' : '#f43f5e' }} />
+                            filteredTransactions.slice(0, 5).map((tx, i) => {
+                                const currentAcc = String(AccountDetails.accountNumber || '').trim();
+                                const isReceiver = String(tx.receiverAccount || '').trim() === currentAcc;
+                                const amount = Math.abs(tx.amount || 0);
+                                return (
+                                    <div key={i} style={styles.txItem}>
+                                        <div style={styles.txIcon}>
+                                            <div style={{ ...styles.cardCircle, backgroundColor: isReceiver ? '#10b981' : '#f43f5e' }} />
+                                        </div>
+                                        <div style={styles.txInfo}>
+                                            <p style={styles.txType}>{tx.type}</p>
+                                            <p style={styles.txDate}>{new Date(tx.timestamp || tx.date).toLocaleDateString()}</p>
+                                        </div>
+                                        <p style={{ ...styles.txAmount, color: isReceiver ? '#10b981' : '#f43f5e' }}>
+                                            {isReceiver ? '+' : '-'}{amount.toFixed(2)}
+                                        </p>
                                     </div>
-                                    <div style={styles.txInfo}>
-                                        <p style={styles.txType}>{tx.type}</p>
-                                        <p style={styles.txDate}>{tx.date}</p>
-                                    </div>
-                                    <p style={{ ...styles.txAmount, color: tx.amount > 0 ? '#10b981' : '#f43f5e' }}>
-                                        {tx.amount > 0 ? '+' : ''}{tx.amount.toFixed(2)}
-                                    </p>
-                                </div>
-                            ))
+                                );
+                            })
                         ) : (
                             <p style={{ color: 'var(--text-muted)', textAlign: 'center' }}>No recent activity</p>
                         )}
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 
@@ -421,7 +494,7 @@ const styles = {
     },
     glassCard: {
         height: '220px',
-        background: 'linear-gradient(135deg, #8b5cf6 0%, #c026d3 50%, #4f46e5 100%)',
+        background: 'var(--accent-gradient)',
         borderRadius: '24px',
         padding: '2rem',
         position: 'relative',
@@ -487,10 +560,14 @@ const styles = {
     },
     barChartContainer: {
         display: 'flex',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-start',
         alignItems: 'flex-end',
         height: '300px',
         paddingTop: '2rem',
+        overflowX: 'auto',
+        gap: '1rem',
+        paddingBottom: '0.75rem',
+        scrollBehavior: 'smooth',
     },
     barGroup: {
         display: 'flex',
@@ -498,6 +575,7 @@ const styles = {
         alignItems: 'center',
         gap: '1rem',
         flex: 1,
+        minWidth: '35px',
     },
     barStack: {
         width: '12px',

@@ -1,9 +1,9 @@
 import axios from 'axios';
 
-export const fetchBalance = async (accountId, pin) => {
+export const fetchBalance = async (accountNumber, upiPin) => {
     const response = await axios.post(
-        "http://localhost:8080/api/balance",
-        { accountId, pin },
+        "/api/balance",
+        { accountNumber, upiPin },
         {
             withCredentials: true // 🔥 REQUIRED
         }

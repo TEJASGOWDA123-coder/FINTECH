@@ -50,6 +50,36 @@ const Settings = () => {
         if (name === 'email') localStorage.setItem('profileEmail', value);
     };
 
+    const [showPinModal, setShowPinModal] = useState(false);
+    const [pinData, setPinData] = useState({ current: '', new: '', confirm: '' });
+
+    const handlePinChange = async (e) => {
+        e.preventDefault();
+        if (pinData.new !== pinData.confirm) {
+            showMessage('New PINs do not match', 'error');
+            return;
+        }
+        if (pinData.new.length < 4 || pinData.new.length > 6) {
+            showMessage('PIN must be 4-6 digits', 'error');
+            return;
+        }
+
+        try {
+            const axios = require('axios').default;
+            await axios.post('/api/update-pin', {
+                oldPin: pinData.current,
+                newPin: pinData.new
+            }, { withCredentials: true });
+
+            setShowPinModal(false);
+            showMessage('UPI PIN updated successfully');
+            setPinData({ current: '', new: '', confirm: '' });
+        } catch (err) {
+            const errorMsg = err.response?.data?.error || 'Failed to update PIN';
+            showMessage(errorMsg, 'error');
+        }
+    };
+
     return (
         <div style={styles.container}>
             {message.text && (
@@ -65,7 +95,8 @@ const Settings = () => {
 
             <div style={styles.grid}>
                 {/* Profile Section */}
-                <section style={styles.card}>
+                <section style={styles.glassCard}>
+                    <div style={styles.cardGlow} />
                     <h3 style={styles.sectionTitle}>👤 Profile Settings</h3>
                     <div style={styles.field}>
                         <label style={styles.label}>Full Name</label>
@@ -90,7 +121,8 @@ const Settings = () => {
                 </section>
 
                 {/* Appearance Section */}
-                <section style={styles.card}>
+                <section style={styles.glassCard}>
+                    <div style={styles.cardGlow} />
                     <h3 style={styles.sectionTitle}>🎨 Appearance</h3>
                     <div style={styles.toggleRow}>
                         <div>
@@ -104,15 +136,22 @@ const Settings = () => {
                 </section>
 
                 {/* Security Section */}
-                <section style={styles.card}>
+                <section style={styles.glassCard}>
+                    <div style={styles.cardGlow} />
                     <h3 style={styles.sectionTitle}>🔒 Security</h3>
                     <button onClick={() => setShowModal(true)} style={styles.actionBtn}>Change Password</button>
+                    <button
+                        onClick={() => setShowPinModal(true)}
+                        style={{ ...styles.actionBtn, marginTop: '0.5rem', backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
+                    >
+                        Change UPI PIN
+                    </button>
                     <button
                         onClick={toggle2FA}
                         style={{
                             ...styles.actionBtn,
                             marginTop: '0.5rem',
-                            backgroundColor: is2FAEnabled ? 'var(--primary-color)' : 'var(--bg-tertiary)',
+                            backgroundColor: is2FAEnabled ? 'var(--primary-color)' : 'rgba(255, 255, 255, 0.05)',
                             color: is2FAEnabled ? '#ffffff' : 'var(--text-primary)',
                             borderColor: is2FAEnabled ? 'transparent' : 'var(--glass-border)'
                         }}
@@ -122,7 +161,7 @@ const Settings = () => {
                 </section>
             </div>
 
-            {/* Modal */}
+            {/* Password Modal */}
             {showModal && (
                 <div style={styles.modalOverlay}>
                     <div style={styles.modalContent}>
@@ -166,6 +205,54 @@ const Settings = () => {
                     </div>
                 </div>
             )}
+
+            {/* UPI PIN Modal */}
+            {showPinModal && (
+                <div style={styles.modalOverlay}>
+                    <div style={styles.modalContent}>
+                        <h3 style={styles.modalTitle}>Change UPI PIN</h3>
+                        <form onSubmit={handlePinChange}>
+                            <div style={styles.field}>
+                                <label style={styles.label}>Current PIN</label>
+                                <input
+                                    type="password"
+                                    style={styles.input}
+                                    value={pinData.current}
+                                    onChange={e => setPinData({ ...pinData, current: e.target.value })}
+                                    maxLength="6"
+                                    required
+                                />
+                            </div>
+                            <div style={styles.field}>
+                                <label style={styles.label}>New PIN</label>
+                                <input
+                                    type="password"
+                                    style={styles.input}
+                                    value={pinData.new}
+                                    onChange={e => setPinData({ ...pinData, new: e.target.value })}
+                                    maxLength="6"
+                                    required
+                                />
+                            </div>
+                            <div style={styles.field}>
+                                <label style={styles.label}>Confirm PIN</label>
+                                <input
+                                    type="password"
+                                    style={styles.input}
+                                    value={pinData.confirm}
+                                    onChange={e => setPinData({ ...pinData, confirm: e.target.value })}
+                                    maxLength="6"
+                                    required
+                                />
+                            </div>
+                            <div style={styles.modalActions}>
+                                <button type="button" onClick={() => setShowPinModal(false)} style={styles.cancelBtn}>Cancel</button>
+                                <button type="submit" style={styles.saveBtn}>Update PIN</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -173,7 +260,7 @@ const Settings = () => {
 const styles = {
     container: {
         padding: '2.5rem',
-        backgroundColor: 'var(--bg-primary)',
+        background: 'var(--bg-primary)',
         minHeight: '100vh',
         color: 'var(--text-primary)',
         transition: 'var(--transition)',
@@ -181,77 +268,106 @@ const styles = {
     },
     header: { marginBottom: '3rem' },
     title: {
-        fontSize: '2.5rem',
+        fontSize: '3rem',
         fontWeight: '900',
         margin: '0 0 0.5rem 0',
-        background: 'linear-gradient(135deg, #4f46e5 0%, #c026d3 100%)',
+        background: 'var(--accent-gradient)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
+        letterSpacing: '-1px',
+        textShadow: '0 10px 30px rgba(79, 70, 229, 0.2)',
     },
-    subtitle: { color: 'var(--text-muted)', fontSize: '1rem' },
+    subtitle: { color: 'var(--text-muted)', fontSize: '1.1rem' },
     grid: {
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
         gap: '2rem',
         maxWidth: '1200px',
     },
-    card: {
-        backgroundColor: 'var(--bg-secondary)',
+    glassCard: {
+        position: 'relative',
+        background: 'var(--glass-bg)',
+        backdropFilter: 'blur(12px)',
         borderRadius: '24px',
         padding: '2rem',
         border: '1px solid var(--glass-border)',
         boxShadow: 'var(--shadow-lg)',
+        overflow: 'hidden',
+        transition: 'transform 0.3s ease',
+    },
+    cardGlow: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '100px',
+        background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%)',
+        pointerEvents: 'none',
     },
     sectionTitle: {
         fontSize: '1.25rem',
         fontWeight: '700',
         marginBottom: '1.5rem',
         color: 'var(--text-primary)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.75rem',
     },
-    field: { marginBottom: '1.25rem' },
+    field: { marginBottom: '1.5rem' },
     label: {
         display: 'block',
         fontSize: '0.85rem',
         fontWeight: '600',
         color: 'var(--text-muted)',
-        marginBottom: '0.5rem',
+        marginBottom: '0.75rem',
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
     },
     input: {
         width: '100%',
-        backgroundColor: 'var(--bg-tertiary)',
+        backgroundColor: 'rgba(0, 0, 0, 0.05)',
         border: '1px solid var(--glass-border)',
         borderRadius: '12px',
-        padding: '0.75rem 1rem',
+        padding: '1rem',
         color: 'var(--text-primary)',
-        fontSize: '0.9rem',
+        fontSize: '1rem',
         outline: 'none',
+        transition: 'all 0.2s ease',
     },
     toggleRow: {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
+        padding: '1rem',
+        background: 'rgba(0, 0, 0, 0.02)',
+        borderRadius: '16px',
     },
     toggleLabel: { fontWeight: '600', margin: 0 },
     toggleSub: { fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.2rem 0 0 0' },
     themeBtn: {
         padding: '0.6rem 1.25rem',
         borderRadius: '10px',
-        border: 'none',
-        backgroundColor: 'var(--primary-color)',
-        color: '#ffffff',
-        fontWeight: '700',
-        cursor: 'pointer',
-    },
-    actionBtn: {
-        width: '100%',
-        padding: '0.75rem',
-        borderRadius: '12px',
         border: '1px solid var(--glass-border)',
-        backgroundColor: 'var(--bg-tertiary)',
+        backgroundColor: 'var(--bg-secondary)',
         color: 'var(--text-primary)',
         fontWeight: '600',
         cursor: 'pointer',
-        transition: 'var(--transition)',
+        transition: 'all 0.2s',
+        boxShadow: 'var(--shadow-sm)',
+    },
+    actionBtn: {
+        width: '100%',
+        padding: '1rem',
+        borderRadius: '16px',
+        border: '1px solid var(--glass-border)',
+        backgroundColor: 'var(--bg-secondary)',
+        color: 'var(--text-primary)',
+        fontWeight: '600',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        fontSize: '1rem',
+        backdropFilter: 'blur(4px)',
+        boxShadow: 'var(--shadow-sm)',
     },
     toast: {
         position: 'fixed',
@@ -261,9 +377,10 @@ const styles = {
         borderRadius: '12px',
         color: 'white',
         fontWeight: '600',
-        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+        boxShadow: 'var(--shadow-lg)',
         zIndex: 2000,
         animation: 'slideIn 0.3s ease-out',
+        backdropFilter: 'blur(10px)',
     },
     modalOverlay: {
         position: 'fixed',
@@ -271,26 +388,28 @@ const styles = {
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        backdropFilter: 'blur(5px)',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        backdropFilter: 'blur(8px)',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 1000,
     },
     modalContent: {
-        backgroundColor: 'var(--bg-secondary)',
+        background: 'var(--bg-secondary)',
         padding: '2.5rem',
         borderRadius: '24px',
         width: '90%',
         maxWidth: '400px',
         border: '1px solid var(--glass-border)',
-        boxShadow: 'var(--shadow-xl)',
+        boxShadow: 'var(--shadow-lg)',
     },
     modalTitle: {
         marginTop: 0,
         color: 'var(--text-primary)',
         marginBottom: '1.5rem',
+        fontSize: '1.5rem',
+        fontWeight: '800',
     },
     modalActions: {
         display: 'flex',
@@ -299,22 +418,24 @@ const styles = {
     },
     cancelBtn: {
         flex: 1,
-        padding: '0.75rem',
-        borderRadius: '10px',
-        border: '1px solid var(--text-muted)',
+        padding: '1rem',
+        borderRadius: '12px',
+        border: '1px solid var(--glass-border)',
         backgroundColor: 'transparent',
-        color: 'var(--text-secondary)',
+        color: 'var(--text-muted)',
         cursor: 'pointer',
+        fontWeight: '600',
     },
     saveBtn: {
         flex: 1,
-        padding: '0.75rem',
-        borderRadius: '10px',
+        padding: '1rem',
+        borderRadius: '12px',
         border: 'none',
-        backgroundColor: 'var(--primary-color)',
+        background: 'var(--accent-gradient)',
         color: 'white',
         fontWeight: '700',
         cursor: 'pointer',
+        boxShadow: '0 10px 15px -3px rgba(79, 70, 229, 0.3)',
     },
 };
 

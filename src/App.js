@@ -11,9 +11,13 @@ import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import Notifications from './pages/Notifications';
 import Login from './pages/Login';
+import PortfolioDashboard from './pages/PortfolioDashboard';
+import AuditLogs from './pages/AuditLogs';
 import Sidebar from './components/Sidebar';
 import ChatBox from './components/ChatBox';
+import GlobalActions from './components/GlobalActions';
 import { ThemeProvider } from './context/ThemeContext';
+import { ActionProvider } from './context/ActionContext';
 import './App.css';
 
 // Layout component to handle conditional Sidebar/ChatBox rendering
@@ -36,26 +40,31 @@ const Layout = ({ children }) => {
 function App() {
   return (
     <ThemeProvider>
-      <Router>
-        <Layout>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/create-account" element={<CreateAccount />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/notifications" element={<Notifications />} />
-            <Route path="/" element={<Navigate to="/login" replace />} />
+      <ActionProvider>
+        <Router>
+          <GlobalActions />
+          <Layout>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/portfolio" element={<PortfolioDashboard />} />
+              <Route path="/create-account" element={<CreateAccount />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/notifications" element={<Notifications />} />
+              <Route path="/" element={<Navigate to="/login" replace />} />
 
-            {/* Banking Routes */}
-            <Route path="/deposit" element={<Deposit />} />
-            <Route path="/transfer" element={<Transfer />} />
-            <Route path="/balance" element={<Balance />} />
-            <Route path="/transactions" element={<TransactionHistory />} />
-          </Routes>
-        </Layout>
-      </Router>
+              {/* Banking Routes */}
+              <Route path="/deposit" element={<Deposit />} />
+              <Route path="/transfer" element={<Transfer />} />
+              <Route path="/balance" element={<Balance />} />
+              <Route path="/transactions" element={<TransactionHistory />} />
+              <Route path="/audit-logs" element={<AuditLogs />} />
+            </Routes>
+          </Layout>
+        </Router>
+      </ActionProvider>
     </ThemeProvider>
   );
 }

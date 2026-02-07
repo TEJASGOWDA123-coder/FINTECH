@@ -1,65 +1,50 @@
 import React, { useState } from 'react';
-import { getTransactions } from '../services/api';
+
 import '../index.css';
 import axios from 'axios';
 
 const TransactionHistory = () => {
-    const storedAccount = localStorage.getItem('accountNumber') || '';
+
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [accountId, setAccountId] = useState(storedAccount);
+
     const [error, setError] = useState('');
-    const [pin , setPin] = useState('')
+    const [accountNumber, setAccountNumber] = useState(localStorage.getItem('accountNumber') || '');
 
-    // React.useEffect(() => {
-    //     if (storedAccount) {
-    //         executeFetch(storedAccount);
-    //     }
-    // }, [storedAccount]);
-
-    // const executeFetch = (id) => {
-    //     setLoading(true);
-    //     setError('');
-    //     getTransactions(id)
-    //         .then(data => {
-    //             const txns = Array.isArray(data) ? data : [];
-    //             setTransactions(txns);
-    //             setLoading(false);
-    //         })
-    //         .catch(err => {
-    //             setError('Failed to load transactions.');
-    //             setLoading(false);
-    //         });
-    // };
-
-    // const fetchTransactions = (e) => {
-    //     if (e) e.preventDefault();
-    //     executeFetch(accountId);
-    // };
-    // console.log({transactions});
-    
-   
-    const handlecheckhistory=()=>{
-        const token = localStorage.getItem('token');
-        const data = axios.get(`http://localhost:8080/transactions?UpiPin=${pin}`,{
-            headers :{
-                'Authorization' : `Bearer ${token}`
+    React.useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const userRes = await axios.get('/loggedin_user');
+                if (userRes.data.status === 'success') {
+                    setAccountNumber(userRes.data.data.accountNumber);
+                    fetchTransactions();
+                }
+            } catch (err) {
+                console.error("Failed to fetch user data", err);
             }
-        })
-        data.then(res=>
-            {
-                setPin('')
-            setError('')
-            if(res.data.status === "success"){
-                setTransactions(res.data.data);
-            }else{
-                setError(res.data.message); 
-            }
-        }
-        );
-        
-        
-    }
+        };
+        fetchUserData();
+    }, []);
+
+    const fetchTransactions = () => {
+        setLoading(true);
+        axios.get(`/api/transactions`, { withCredentials: true })
+            .then(res => {
+                setLoading(false);
+                if (Array.isArray(res.data)) {
+                    setTransactions(res.data);
+                } else if (res.data.status === "success") {
+                    setTransactions(res.data.data);
+                } else {
+                    setError(res.data.message || "Failed to fetch transactions");
+                }
+            })
+            .catch(err => {
+                setLoading(false);
+                console.error('History fetch failed:', err);
+                setError('Failed to load transactions.');
+            });
+    };
 
     return (
         <div style={styles.container}>
@@ -68,15 +53,15 @@ const TransactionHistory = () => {
                 <p style={styles.subHeader}>Track your financial activity.</p>
 
                 {/* <form onSubmit={fetchTransactions} style={{ ...styles.form, marginBottom: '2rem' }}> */}
-                    <div style={styles.inputGroup} >
-                        <label style={styles.label}>Account ID to View</label>
-                       
-                        <input type="text" 
+                {/* <div style={styles.inputGroup} >
+                    <label style={styles.label}>Account ID to View</label>
+
+                    <input type="text"
                         value={pin}
                         placeholder="Enter  Pin"
-                        onChange={(e)=>setPin(e.target.value)} />
-                    </div>
-                    <button type="submit" onClick={()=>handlecheckhistory()} style={styles.button}>View History</button>
+                        onChange={(e) => setPin(e.target.value)} />
+                </div>
+                <button type="submit" onClick={() => handlecheckhistory()} style={styles.button}>View History</button> */}
                 {/* </form> */}
 
                 {error && <p style={styles.error}>{error}</p>}
@@ -91,28 +76,46 @@ const TransactionHistory = () => {
                                     <th style={styles.th}>Date</th>
                                     <th style={styles.th}>Type</th>
                                     <th style={styles.th}>ID</th>
+                                    <th style={styles.th}>Account</th>
                                     <th style={styles.th}>Status</th>
                                     <th style={styles.thRight}>Amount</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {transactions.map((txn) => (
-                                    <tr key={txn.id} style={styles.tr}>
-                                        <td style={styles.td}>{txn.transactionDate
-}</td>
-                                        <td style={styles.td}>{txn.transactionType}</td>
-                                        <td style={styles.tdCode}>{txn.
-transaction_id
-}</td>
-                                        <td style={styles.td}>
-                                            {/* <span style={getStatusStyle(txn.status)}>{txn.status}</span> */}
-                                            {txn.transactionType}
-                                        </td>
-                                        <td style={{ ...styles.tdRight, ...getAmountStyle(txn.transactionType != 'debit') }}>
-                                            {txn.transactionType === 'debit' ? '-' : '+'}{txn.amount.toFixed(2)}
-                                        </td>
-                                    </tr>
-                                ))}
+                                {transactions.map((txn) => {
+                                    const isReceiver = String(txn.receiverAccount).trim() === String(accountNumber).trim();
+                                    const amount = Math.abs(txn.amount);
+                                    let isCredit = isReceiver;
+
+                                    // Explicitly handle types to ensure correct credit/debit logic
+                                    if (txn.type === 'DEPOSIT' || txn.type === 'INITIAL_DEPOSIT') isCredit = true;
+                                    if (txn.type === 'WITHDRAW') isCredit = false;
+
+                                    // Determine the "other" account
+                                    let otherAccount = isReceiver ? txn.senderAccount : txn.receiverAccount;
+                                    if (txn.type === 'DEPOSIT') otherAccount = 'Bank Deposit';
+                                    if (txn.type === 'INITIAL_DEPOSIT') otherAccount = 'Initial Deposit';
+                                    if (txn.type === 'WITHDRAW') otherAccount = 'Bank Withdrawal';
+
+                                    const displayType = isCredit ? 'Credited' : 'Debited';
+
+                                    return (
+                                        <tr key={txn.id} style={styles.tr}>
+                                            <td style={styles.td}>{new Date(txn.timestamp || txn.date).toLocaleString()}</td>
+                                            <td style={styles.td}>{txn.type}</td>
+                                            <td style={styles.tdCode}>{txn.id}</td>
+                                            <td style={styles.tdCode}>{otherAccount}</td>
+                                            <td style={styles.td}>
+                                                <span style={{ color: isCredit ? 'var(--success-color)' : 'var(--danger-color)', fontWeight: '600' }}>
+                                                    {displayType}
+                                                </span>
+                                            </td>
+                                            <td style={{ ...styles.tdRight, color: isCredit ? 'var(--success-color)' : 'var(--danger-color)' }}>
+                                                {isCredit ? '+' : '-'}{amount.toFixed(2)}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
@@ -122,27 +125,8 @@ transaction_id
     );
 };
 
-const getStatusStyle = (status) => {
-    const baseStyle = {
-        padding: '0.25rem 0.5rem',
-        borderRadius: '6px',
-        fontSize: '0.75rem',
-        fontWeight: '700',
-        textTransform: 'uppercase',
-    };
 
-    switch (status) {
-        case 'Completed': return { ...baseStyle, backgroundColor: 'rgba(16, 185, 129, 0.1)', color: 'var(--success-color)' };
-        case 'Pending': return { ...baseStyle, backgroundColor: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' };
-        case 'Failed': return { ...baseStyle, backgroundColor: 'rgba(244, 63, 94, 0.1)', color: 'var(--danger-color)' };
-        default: return baseStyle;
-    }
-};
 
-const getAmountStyle = (amount) => ({
-    color: amount > 0 ? 'var(--success-color)' : 'var(--text-primary)',
-    fontWeight: '800',
-});
 
 const styles = {
     container: {

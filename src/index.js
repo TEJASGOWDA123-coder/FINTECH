@@ -3,6 +3,10 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import { setupStockMock } from './services/mockStockServer';
+
+// Initialize mock API for stocks
+setupStockMock();
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

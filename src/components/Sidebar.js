@@ -5,8 +5,32 @@ import { useTheme } from '../context/ThemeContext';
 const Sidebar = () => {
     const location = useLocation();
     const { theme, toggleTheme } = useTheme();
-    // const [accountNumber, setAccountNumber] = useState(localStorage.getItem('accountNumber') || '');
-    const [accountNumber, setAccountNumber] = useState();
+    const [accountNumber, setAccountNumber] = useState(localStorage.getItem('accountNumber') || '');
+
+    React.useEffect(() => {
+        // Fetch real logged-in user from backend to sync sidebar
+        const syncAccount = async () => {
+            try {
+                const response = await fetch('/loggedin_user');
+                const data = await response.json();
+                if (data.status === 'success' && data.data && data.data.accountNumber) {
+                    const accNum = data.data.accountNumber;
+                    setAccountNumber(accNum);
+                    localStorage.setItem('accountNumber', accNum);
+                }
+            } catch (err) {
+                console.error('Sidebar sync failed:', err);
+            }
+        };
+
+        syncAccount();
+
+        const handleStorageChange = () => {
+            setAccountNumber(localStorage.getItem('accountNumber') || '');
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
 
     const handleAccountChange = (e) => {
         const newAccount = e.target.value;
@@ -17,10 +41,16 @@ const Sidebar = () => {
 
     const menuItems = [
         { path: '/dashboard', label: 'Dashboard', icon: '🏠' },
+        { path: '/portfolio', label: 'Portfolio', icon: '📈' },
         { path: '/balance', label: 'Cards', icon: '💳' },
         { path: '/transactions', label: 'Transactions', icon: '💸' },
         { path: '/transfer', label: 'Transfer', icon: '📤' },
     ];
+
+    // Check if user is admin (mock check for now, can be updated later)
+    if (localStorage.getItem('accountNumber') === '123456' || localStorage.getItem('role') === 'admin') {
+        menuItems.push({ path: '/audit-logs', label: 'Audit Logs', icon: '📋' });
+    }
 
     const footerItems = [
         { path: '/privacy', label: 'Privacy', icon: '🛡️' },
@@ -58,19 +88,18 @@ const Sidebar = () => {
 
             <div style={styles.footer}>
                 {footerItems.map((item) => (
-                    <>
-                   
-                    <Link key={item.label} to={item.path}
-                    onClick={()=>{
-                        if(item.label==="Log out"){
-                            localStorage.removeItem('token');
-                        }
-                    }}
-                    style={styles.footerLink}>
-                        <span style={styles.footerIcon}>{item.icon}</span>
-                        <span style={styles.footerLabel}>{item.label}</span>
-                    </Link>
-                    </>
+                    <React.Fragment key={item.label}>
+                        <Link to={item.path}
+                            onClick={() => {
+                                if (item.label === "Log out") {
+                                    localStorage.removeItem('token');
+                                }
+                            }}
+                            style={styles.footerLink}>
+                            <span style={styles.footerIcon}>{item.icon}</span>
+                            <span style={styles.footerLabel}>{item.label}</span>
+                        </Link>
+                    </React.Fragment>
                 ))}
             </div>
 
@@ -120,7 +149,7 @@ const styles = {
         width: '32px',
         height: '32px',
         borderRadius: '50%',
-        background: 'linear-gradient(135deg, #4f46e5 0%, #10b981 100%)',
+        background: 'var(--accent-gradient)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
