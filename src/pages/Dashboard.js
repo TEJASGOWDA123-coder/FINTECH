@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import '../index.css';
 import axios from 'axios';
-import { downloadStatement, getTransactions } from '../services/api';
+import { getTransactions } from '../services/api';
 
 const Dashboard = () => {
     // const [account, setAccount] = useState(localStorage.getItem('accountNumber') || 'N/A');
@@ -41,6 +41,9 @@ const Dashboard = () => {
                 // Sync localStorage to keep Sidebar and other components updated
                 if (data.data.data.accountNumber) {
                     localStorage.setItem('accountNumber', data.data.data.accountNumber);
+                    if (data.data.data.role) {
+                        localStorage.setItem('role', data.data.data.role);
+                    }
                     window.dispatchEvent(new Event('storage'));
                 }
             }
@@ -53,7 +56,26 @@ const Dashboard = () => {
         setLoading(true);
         getTransactions(accNum)
             .then(data => {
-                const txns = Array.isArray(data) ? data : [];
+                // Determine the correct array of transactions
+                let txns = [];
+                if (Array.isArray(data)) {
+                    txns = data;
+                } else if (data && data.status === 'success' && Array.isArray(data.data)) {
+                    txns = data.data;
+                } else if (data && Array.isArray(data.content)) {
+                    txns = data.content;
+                } else if (data && Array.isArray(data.transactions)) {
+                    txns = data.transactions;
+                } else if (data && Array.isArray(data.list)) {
+                    txns = data.list;
+                }
+
+                console.log('Dashboard Data Fetched:', {
+                    account: accNum,
+                    count: txns.length,
+                    sample: txns[0]
+                });
+
                 setTransactions(txns);
                 setLoading(false);
             })
@@ -109,26 +131,40 @@ const Dashboard = () => {
             const monthlyData = {};
 
             filtered.forEach(tx => {
-                const amount = Math.abs(tx.amount || 0);
-                const isReceiver = String(tx.receiverAccount || '').trim() === currentAcc;
-                const isSender = String(tx.senderAccount || '').trim() === currentAcc;
+                const amount = Number(tx.amount || 0);
+                const absAmount = Math.abs(amount);
+                const txSender = String(tx.senderAccount || '').trim();
+                const txReceiver = String(tx.receiverAccount || '').trim();
+
+                const isReceiver = txReceiver === currentAcc;
+                const isSender = txSender === currentAcc;
+
                 const txDate = new Date(tx.timestamp || tx.date);
-                const month = txDate.toLocaleString('default', { month: 'short' });
+                if (isNaN(txDate.getTime())) return;
+
+                // Use a consistent month format that matches the chart labels exactly
+                const month = txDate.toLocaleString('en-US', { month: 'short' });
 
                 if (!monthlyData[month]) {
                     monthlyData[month] = { income: 0, expends: 0 };
                 }
 
                 if (isReceiver) {
-                    incomeSum += amount;
-                    monthlyData[month].income += amount;
+                    incomeSum += absAmount;
+                    monthlyData[month].income += absAmount;
                 } else if (isSender) {
-                    expendsSum += amount;
-                    monthlyData[month].expends += amount;
+                    expendsSum += absAmount;
+                    monthlyData[month].expends += absAmount;
                 }
             });
 
-            console.log('Dashboard Stats Updated:', { incomeSum, expendsSum, monthlyData, currentAcc });
+            console.log('Dashboard Stats Updated:', {
+                incomeSum,
+                expendsSum,
+                monthlyData,
+                currentAcc,
+                filteredCount: filtered.length
+            });
             setStats({ income: incomeSum, expends: expendsSum });
             setMonthlyStats(monthlyData);
         };
@@ -194,19 +230,6 @@ const Dashboard = () => {
                 </div>
 
                 <div style={styles.filterTime}>
-                    <button
-                        onClick={async () => {
-                            try {
-                                await downloadStatement();
-                                alert('Statement download started.');
-                            } catch (err) {
-                                alert('Failed to download statement.');
-                            }
-                        }}
-                        style={styles.timeBtn}
-                    >
-                        📄 Download Statement
-                    </button>
                     <button
                         onClick={() => setTimeFilter('12m')}
                         style={timeFilter === '12m' ? styles.timeBtnActive : styles.timeBtn}
@@ -327,20 +350,52 @@ const Dashboard = () => {
             <div style={styles.bottomGrid}>
                 {/* Money Flow Chart */}
                 <div style={styles.chartSection}>
-                    <p style={styles.sectionLabel}>Money Flow</p>
+                    <div style={styles.chartHeader}>
+                        <p style={styles.sectionLabel}>Money Flow</p>
+                        <div style={styles.legend}>
+                            <div style={styles.legendItem}>
+                                <div style={{ ...styles.legendColor, background: 'linear-gradient(180deg, #10b981 0%, #059669 100%)' }} />
+                                <span style={styles.legendLabel}>Income</span>
+                            </div>
+                            <div style={styles.legendItem}>
+                                <div style={{ ...styles.legendColor, background: 'linear-gradient(180deg, #f43f5e 0%, #e11d48 100%)' }} />
+                                <span style={styles.legendLabel}>Expenses</span>
+                            </div>
+                        </div>
+                    </div>
                     <div style={styles.barChartContainer}>
                         {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(month => {
                             const data = monthlyStats[month] || { income: 0, expends: 0 };
                             // Calculate height relative to a max value for better scaling
                             const maxVal = Math.max(...Object.values(monthlyStats).map(s => s.income + s.expends), 100);
-                            const incomeHeight = (data.income / maxVal) * 80; // 80% max height
-                            const expendsHeight = (data.expends / maxVal) * 80;
+                            const incomeHeight = (data.income / maxVal) * 90; // 90% max height
+                            const expendsHeight = (data.expends / maxVal) * 90;
 
                             return (
                                 <div key={month} style={styles.barGroup}>
-                                    <div style={styles.barStack}>
-                                        <div style={{ ...styles.barSegment, height: `${incomeHeight}%`, backgroundColor: '#818cf8', display: data.income > 0 ? 'block' : 'none' }} />
-                                        <div style={{ ...styles.barSegment, height: `${expendsHeight}%`, backgroundColor: '#4f46e5', display: data.expends > 0 ? 'block' : 'none' }} />
+                                    <div style={styles.barStackOuter}>
+                                        <div style={styles.barStack}>
+                                            <div
+                                                style={{
+                                                    ...styles.barSegment,
+                                                    height: `${incomeHeight}%`,
+                                                    background: 'linear-gradient(180deg, #10b981 0%, #059669 100%)',
+                                                    display: data.income > 0 ? 'block' : 'none',
+                                                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)'
+                                                }}
+                                                title={`Income: $${data.income.toFixed(2)}`}
+                                            />
+                                            <div
+                                                style={{
+                                                    ...styles.barSegment,
+                                                    height: `${expendsHeight}%`,
+                                                    background: 'linear-gradient(180deg, #f43f5e 0%, #e11d48 100%)',
+                                                    display: data.expends > 0 ? 'block' : 'none',
+                                                    boxShadow: '0 4px 12px rgba(244, 63, 94, 0.2)'
+                                                }}
+                                                title={`Expenses: $${data.expends.toFixed(2)}`}
+                                            />
+                                        </div>
                                     </div>
                                     <span style={styles.barLabel}>{month}</span>
                                 </div>
@@ -576,36 +631,70 @@ const styles = {
         border: '1px solid var(--glass-border)',
         boxShadow: 'var(--shadow-lg)',
     },
+    chartHeader: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '1.5rem',
+    },
+    legend: {
+        display: 'flex',
+        gap: '1.5rem',
+    },
+    legendItem: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+    },
+    legendColor: {
+        width: '12px',
+        height: '12px',
+        borderRadius: '3px',
+    },
+    legendLabel: {
+        fontSize: '0.8rem',
+        color: 'var(--text-muted)',
+        fontWeight: '600',
+    },
     barChartContainer: {
         display: 'flex',
-        justifyContent: 'flex-start',
+        justifyContent: 'space-between',
         alignItems: 'flex-end',
-        height: '300px',
-        paddingTop: '2rem',
-        overflowX: 'auto',
-        gap: '1rem',
-        paddingBottom: '0.75rem',
-        scrollBehavior: 'smooth',
+        height: '240px',
+        paddingTop: '1rem',
     },
     barGroup: {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '1rem',
+        gap: '0.75rem',
         flex: 1,
-        minWidth: '35px',
+        height: '100%',
+    },
+    barStackOuter: {
+        width: '16px',
+        flex: 1,
+        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        borderRadius: '8px',
+        padding: '2px',
+        display: 'flex',
+        alignItems: 'flex-end',
+        transition: 'var(--transition)',
     },
     barStack: {
-        width: '12px',
+        width: '100%',
         height: '100%',
-        backgroundColor: 'var(--bg-tertiary)',
-        borderRadius: '6px',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'flex-end',
-        overflow: 'hidden',
+        gap: '2px',
     },
-    barSegment: { width: '100%', borderRadius: '6px' },
+    barSegment: {
+        width: '100%',
+        borderRadius: '6px',
+        transition: 'height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        cursor: 'pointer',
+    },
     barLabel: { fontSize: '0.75rem', color: 'var(--text-muted)' },
     transactionsSection: {
         backgroundColor: 'var(--bg-secondary)',

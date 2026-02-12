@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { sendChatMessage } from '../services/api';
+import { sendChatMessage, getLedger, createQuickAccount } from '../services/api';
 import { useActions } from '../context/ActionContext';
 
 const ChatBox = () => {
@@ -30,6 +30,69 @@ const ChatBox = () => {
         const userMsg = input.trim();
         setMessages(prev => [...prev, { text: userMsg, isAi: false }]);
         setInput('');
+
+        // --- INTENT DETECTION ---
+        const ledgerKeywords = ["transaction", "history", "ledger", "activity"];
+        const hasLedgerIntent = ledgerKeywords.some(keyword => userMsg.toLowerCase().includes(keyword));
+
+        if (hasLedgerIntent) {
+            setIsThinking(true);
+            try {
+                const data = await getLedger();
+                const ledgerData = Array.isArray(data) ? data : (data.data || []);
+                const sortedData = [...ledgerData].sort((a, b) =>
+                    new Date(b.timestamp || b.date) - new Date(a.timestamp || a.date)
+                );
+                setMessages(prev => [...prev, {
+                    text: "Here is your full transaction activity:",
+                    isAi: true,
+                    type: 'ledger',
+                    data: sortedData
+                }]);
+                setIsThinking(false);
+                return; // Skip AI fallback
+            } catch (err) {
+                console.error("Ledger intent failed:", err);
+                // Fallback to AI if API fails, or show error
+            } finally {
+                setIsThinking(false);
+            }
+        }
+        // --- ACCOUNT CREATION INTENT ---
+        const accountKeywords = ["create account", "open account", "new account", "signup", "register"];
+        const hasAccountIntent = accountKeywords.some(keyword => userMsg.toLowerCase().includes(keyword));
+
+        if (hasAccountIntent) {
+            setIsThinking(true);
+            try {
+                const res = await createQuickAccount();
+                if (res.status === 'success' || res.accountNumber) {
+                    setMessages(prev => [...prev, {
+                        text: "Success! Your new Financo account has been created.",
+                        isAi: true,
+                        type: 'account_created',
+                        data: { accountNumber: res.accountNumber }
+                    }]);
+                } else {
+                    setMessages(prev => [...prev, {
+                        text: res.message || "I couldn't create your account at this moment. Please try again later.",
+                        isAi: true
+                    }]);
+                }
+                setIsThinking(false);
+                return;
+            } catch (err) {
+                console.error("Account creation intent failed:", err);
+                setMessages(prev => [...prev, {
+                    text: "Sorry, I encountered an error while trying to create your account.",
+                    isAi: true
+                }]);
+            } finally {
+                setIsThinking(false);
+            }
+        }
+        // --------------------------------
+
         setIsThinking(true);
 
         try {
@@ -62,8 +125,11 @@ const ChatBox = () => {
             console.log('ChatBox Error:', error.message, status);
 
             let message = "Sorry, I'm having trouble connecting to the AI service. Please try again later.";
-            if (status === 401) message = "Session expired or access denied. Please try logging in again.";
-            if (status === 404) message = "AI service endpoint not found on server.";
+            if (status === 401) {
+                message = "You need to be logged in to access banking features. Please log into your Financo account.";
+            } else if (status === 404) {
+                message = "AI service endpoint not found on server.";
+            }
 
             setMessages(prev => [...prev, { text: message, isAi: true }]);
         } finally {
@@ -94,6 +160,39 @@ const ChatBox = () => {
                     <div key={i} style={m.isAi ? styles.aiMsgContainer : styles.userMsgContainer}>
                         <div style={m.isAi ? styles.aiMsg : styles.userMsg}>
                             {m.text}
+                            {m.type === 'ledger' && m.data && (
+                                <div style={styles.ledgerTableContainer}>
+                                    <table style={styles.miniTable}>
+                                        <thead>
+                                            <tr>
+                                                <th style={styles.miniTh}>Date</th>
+                                                <th style={styles.miniTh}>Type</th>
+                                                <th style={styles.miniThRight}>Amount</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {m.data.map((txn, idx) => (
+                                                <tr key={idx} style={styles.miniTr}>
+                                                    <td style={styles.miniTd}>{new Date(txn.timestamp || txn.date).toLocaleDateString()}</td>
+                                                    <td style={styles.miniTd}>{txn.type}</td>
+                                                    <td style={{ ...styles.miniTdRight, color: txn.type === 'DEPOSIT' ? '#10b981' : '#f43f5e' }}>
+                                                        {txn.amount.toFixed(2)}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                            {m.type === 'account_created' && m.data && (
+                                <div style={styles.accountSuccessCard}>
+                                    <div style={styles.successBadge}>NEW ACCOUNT</div>
+                                    <div style={styles.miniAccountNumber}>{m.data.accountNumber}</div>
+                                    <p style={{ margin: '8px 0 0 0', fontSize: '0.8rem', opacity: 0.8 }}>
+                                        Use this account number to login.
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 ))}
@@ -254,6 +353,68 @@ const styles = {
         color: '#ffffff',
         transition: 'var(--transition)',
     },
+    ledgerTableContainer: {
+        marginTop: '10px',
+        borderRadius: '8px',
+        overflow: 'hidden',
+        border: '1px solid var(--glass-border)',
+        backgroundColor: 'rgba(0,0,0,0.1)',
+        maxHeight: '250px',
+        overflowY: 'auto',
+    },
+    miniTable: {
+        width: '100%',
+        borderCollapse: 'collapse',
+        fontSize: '0.75rem',
+    },
+    miniTh: {
+        textAlign: 'left',
+        padding: '6px 8px',
+        color: 'var(--text-muted)',
+        borderBottom: '1px solid var(--glass-border)',
+        fontWeight: '700',
+    },
+    miniThRight: {
+        textAlign: 'right',
+        padding: '6px 8px',
+        color: 'var(--text-muted)',
+        borderBottom: '1px solid var(--glass-border)',
+        fontWeight: '700',
+    },
+    miniTr: {
+        borderBottom: '1px solid rgba(255,255,255,0.05)',
+    },
+    miniTd: {
+        padding: '6px 8px',
+        color: 'var(--text-secondary)',
+    },
+    miniTdRight: {
+        padding: '6px 8px',
+        textAlign: 'right',
+        fontWeight: '700',
+    },
+    accountSuccessCard: {
+        marginTop: '12px',
+        background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(168, 85, 247, 0.2) 100%)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: '12px',
+        padding: '1rem',
+        textAlign: 'center',
+    },
+    successBadge: {
+        fontSize: '0.65rem',
+        fontWeight: '800',
+        color: '#10b981',
+        letterSpacing: '0.1em',
+        marginBottom: '8px',
+    },
+    miniAccountNumber: {
+        fontSize: '1.5rem',
+        fontWeight: '900',
+        color: '#ffffff',
+        fontFamily: 'monospace',
+        letterSpacing: '0.1em',
+    }
 };
 
 export default ChatBox;

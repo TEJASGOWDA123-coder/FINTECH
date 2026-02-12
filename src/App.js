@@ -13,6 +13,7 @@ import Notifications from './pages/Notifications';
 import Login from './pages/Login';
 import PortfolioDashboard from './pages/PortfolioDashboard';
 import AuditLogs from './pages/AuditLogs';
+import Statements from './pages/Statements';
 import Sidebar from './components/Sidebar';
 import ChatBox from './components/ChatBox';
 import GlobalActions from './components/GlobalActions';
@@ -32,7 +33,7 @@ const Layout = ({ children }) => {
       <main className="content" style={{ marginLeft: shouldHideSidebar ? '0' : undefined, width: shouldHideSidebar ? '100%' : undefined }}>
         {children}
       </main>
-      <ChatBox />
+      {!shouldHideSidebar && <ChatBox />}
     </div>
   );
 };
@@ -53,6 +54,7 @@ function App() {
               <Route path="/settings" element={<Settings />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/notifications" element={<Notifications />} />
+              <Route path="/statements" element={<Statements />} />
               <Route path="/" element={<Navigate to="/login" replace />} />
 
               {/* Banking Routes */}

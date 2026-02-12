@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 
 import '../index.css';
-import axios from 'axios';
+import { getTransactions, reverseTransaction } from '../services/api';
 
 const TransactionHistory = () => {
 
@@ -9,34 +9,26 @@ const TransactionHistory = () => {
     const [loading, setLoading] = useState(false);
 
     const [error, setError] = useState('');
-    const [accountNumber, setAccountNumber] = useState(localStorage.getItem('accountNumber') || '');
+    const [accountNumber] = useState(localStorage.getItem('accountNumber') || '');
+    const [reversingId, setReversingId] = useState(null);
+    const [toast, setToast] = useState({ show: false, message: '', type: '' });
 
-    React.useEffect(() => {
-        const fetchUserData = async () => {
-            try {
-                const userRes = await axios.get('/loggedin_user');
-                if (userRes.data.status === 'success') {
-                    setAccountNumber(userRes.data.data.accountNumber);
-                    fetchTransactions();
-                }
-            } catch (err) {
-                console.error("Failed to fetch user data", err);
-            }
-        };
-        fetchUserData();
-    }, []);
+    const showToast = (message, type = 'success') => {
+        setToast({ show: true, message, type });
+        setTimeout(() => setToast({ show: false, message: '', type: '' }), 4000);
+    };
 
-    const fetchTransactions = () => {
+    const fetchTransactions = useCallback(() => {
         setLoading(true);
-        axios.get(`/api/transactions`, { withCredentials: true })
-            .then(res => {
+        getTransactions(accountNumber)
+            .then(data => {
                 setLoading(false);
-                if (Array.isArray(res.data)) {
-                    setTransactions(res.data);
-                } else if (res.data.status === "success") {
-                    setTransactions(res.data.data);
+                if (Array.isArray(data)) {
+                    setTransactions(data);
+                } else if (data.status === "success" || data.data) {
+                    setTransactions(data.data || data);
                 } else {
-                    setError(res.data.message || "Failed to fetch transactions");
+                    setError(data.message || "Failed to fetch transactions");
                 }
             })
             .catch(err => {
@@ -44,6 +36,39 @@ const TransactionHistory = () => {
                 console.error('History fetch failed:', err);
                 setError('Failed to load transactions.');
             });
+    }, [accountNumber]);
+
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                // Since accountNumber is already loaded from localStorage, we can just fetch
+                fetchTransactions();
+            } catch (err) {
+                console.error("Failed to fetch user data", err);
+            }
+        };
+        fetchUserData();
+    }, [fetchTransactions]);
+
+    const handleReverse = async (txnId) => {
+        if (!window.confirm(`Are you sure you want to reverse transaction ${txnId}?`)) return;
+
+        setReversingId(txnId);
+        try {
+            const res = await reverseTransaction(txnId);
+            if (res.status === 'success' || res.success) {
+                showToast(`Transaction ${txnId} successfully reversed.`);
+                fetchTransactions();
+            } else {
+                showToast(res.message || 'Failed to reverse transaction', 'error');
+            }
+        } catch (err) {
+            console.error('Reversal failed:', err);
+            const errorMsg = err.response?.data?.message || err.message || 'Failed to reverse transaction';
+            showToast(errorMsg, 'error');
+        } finally {
+            setReversingId(null);
+        }
     };
 
     return (
@@ -79,6 +104,7 @@ const TransactionHistory = () => {
                                     <th style={styles.th}>Account</th>
                                     <th style={styles.th}>Status</th>
                                     <th style={styles.thRight}>Amount</th>
+                                    <th style={styles.thRight}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -113,6 +139,19 @@ const TransactionHistory = () => {
                                             <td style={{ ...styles.tdRight, color: isCredit ? 'var(--success-color)' : 'var(--danger-color)' }}>
                                                 {isCredit ? '+' : '-'}{amount.toFixed(2)}
                                             </td>
+                                            <td style={styles.tdRight}>
+                                                <button
+                                                    onClick={() => handleReverse(txn.id)}
+                                                    disabled={txn.reversed || reversingId === txn.id || txn.type === 'REVERSAL'}
+                                                    style={{
+                                                        ...styles.reverseBtn,
+                                                        opacity: (txn.reversed || reversingId === txn.id || txn.type === 'REVERSAL') ? 0.5 : 1,
+                                                        cursor: (txn.reversed || reversingId === txn.id || txn.type === 'REVERSAL') ? 'not-allowed' : 'pointer'
+                                                    }}
+                                                >
+                                                    {reversingId === txn.id ? '...' : (txn.reversed || txn.type === 'REVERSAL' ? 'Reversed' : 'Reverse')}
+                                                </button>
+                                            </td>
                                         </tr>
                                     );
                                 })}
@@ -121,6 +160,15 @@ const TransactionHistory = () => {
                     </div>
                 )}
             </div>
+
+            {toast.show && (
+                <div style={{
+                    ...styles.toast,
+                    backgroundColor: toast.type === 'error' ? 'var(--danger-color)' : 'var(--success-color)'
+                }}>
+                    {toast.message}
+                </div>
+            )}
         </div>
     );
 };
@@ -249,6 +297,28 @@ const styles = {
         margin: '1.5rem 0',
         border: '1px solid var(--danger-color)',
     },
+    reverseBtn: {
+        backgroundColor: 'transparent',
+        color: 'var(--danger-color)',
+        border: '1px solid var(--danger-color)',
+        padding: '0.4rem 0.8rem',
+        borderRadius: '8px',
+        fontSize: '0.75rem',
+        fontWeight: '700',
+        transition: 'var(--transition)',
+    },
+    toast: {
+        position: 'fixed',
+        bottom: '30px',
+        right: '30px',
+        padding: '1rem 2rem',
+        borderRadius: '12px',
+        color: 'white',
+        fontWeight: '700',
+        boxShadow: 'var(--shadow-lg)',
+        zIndex: 9999,
+        animation: 'slideIn 0.3s ease-out',
+    }
 };
 
 export default TransactionHistory;

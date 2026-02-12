@@ -6,6 +6,7 @@ import StockCharts from '../components/StockCharts';
 import StockTicker from '../components/StockTicker';
 import MarketAlerts from '../components/MarketAlerts';
 import TradingPanel from '../components/TradingPanel';
+import PortfolioGrowthChart from '../components/PortfolioGrowthChart';
 
 const PortfolioDashboard = () => {
     const [stocks, setStocks] = useState([]);
@@ -299,6 +300,7 @@ const PortfolioDashboard = () => {
                             <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-secondary)' }}>Loading Portfolio...</div>
                         ) : (
                             <>
+                                <PortfolioGrowthChart timeFilter={timeFilter} />
                                 <StockCharts stocks={displayStocks} history={filteredHistoryData} latencyData={latencyHistory} />
                                 <StockTable stocks={displayStocks} />
                             </>

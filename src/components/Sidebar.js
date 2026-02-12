@@ -1,22 +1,28 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
+import axios from 'axios';
 
 const Sidebar = () => {
     const location = useLocation();
     const { theme, toggleTheme } = useTheme();
     const [accountNumber, setAccountNumber] = useState(localStorage.getItem('accountNumber') || '');
+    const [role, setRole] = useState(localStorage.getItem('role') || 'USER');
 
     React.useEffect(() => {
         // Fetch real logged-in user from backend to sync sidebar
         const syncAccount = async () => {
             try {
-                const response = await fetch('/loggedin_user');
-                const data = await response.json();
-                if (data.status === 'success' && data.data && data.data.accountNumber) {
+                const response = await axios.get('/loggedin_user', { withCredentials: true });
+                const data = response.data;
+                if (data.status === 'success' && data.data) {
                     const accNum = data.data.accountNumber;
+                    const userRole = data.data.role;
+                    console.log("DEBUG >>> Sidebar sync successful:", { accNum, userRole });
                     setAccountNumber(accNum);
+                    setRole(userRole);
                     localStorage.setItem('accountNumber', accNum);
+                    localStorage.setItem('role', userRole);
                 }
             } catch (err) {
                 console.error('Sidebar sync failed:', err);
@@ -27,6 +33,7 @@ const Sidebar = () => {
 
         const handleStorageChange = () => {
             setAccountNumber(localStorage.getItem('accountNumber') || '');
+            setRole(localStorage.getItem('role') || 'USER');
         };
         window.addEventListener('storage', handleStorageChange);
         return () => window.removeEventListener('storage', handleStorageChange);
@@ -44,13 +51,14 @@ const Sidebar = () => {
         { path: '/portfolio', label: 'Portfolio', icon: '📈' },
         { path: '/balance', label: 'Cards', icon: '💳' },
         { path: '/transactions', label: 'Transactions', icon: '💸' },
+        { path: '/statements', label: 'Statements', icon: '📄' },
         { path: '/transfer', label: 'Transfer', icon: '📤' },
     ];
 
-    // Check if user is admin (mock check for now, can be updated later)
-    // if (localStorage.getItem('accountNumber') === '123456' || localStorage.getItem('role') === 'admin') {
-    menuItems.push({ path: '/audit-logs', label: 'Audit Logs', icon: '📋' });
-    // }
+    // Check if user is admin (case-insensitive)
+    if (role && role.toUpperCase() === 'ADMIN') {
+        menuItems.push({ path: '/audit-logs', label: 'Audit Logs', icon: '📋' });
+    }
 
     const footerItems = [
         { path: '/privacy', label: 'Privacy', icon: '🛡️' },
@@ -118,6 +126,9 @@ const Sidebar = () => {
                     placeholder="Enter Account ID"
                     style={styles.accountInput}
                 />
+                <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '5px' }}>
+                    Role: {role}
+                </div>
             </div>
         </aside>
     );
