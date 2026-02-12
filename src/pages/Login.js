@@ -9,8 +9,33 @@ const Login = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    const [showAccount, setShowAccount] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+
+    const maskValue = (val) => {
+        if (!val) return "";
+        if (val.length <= 4) return val;
+        return "•".repeat(val.length - 4) + val.slice(-4);
+    };
+
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+
+        if (name === 'accountNumber' && !showAccount) {
+            const prevRaw = formData.accountNumber;
+            const prevMasked = maskValue(prevRaw);
+
+            if (value.startsWith(prevMasked)) {
+                setFormData({ ...formData, accountNumber: prevRaw + value.slice(prevMasked.length) });
+            } else if (prevMasked.startsWith(value)) {
+                const deletedCount = prevMasked.length - value.length;
+                setFormData({ ...formData, accountNumber: prevRaw.slice(0, -deletedCount) });
+            } else {
+                setFormData({ ...formData, accountNumber: value });
+            }
+        } else {
+            setFormData({ ...formData, [name]: value });
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -19,7 +44,7 @@ const Login = () => {
         setError('');
 
         try {
-            // Attempt Login (Backend sets JSESSIONID cookie)
+            // Attempt Login
             const data = await loginUser(formData);
 
             if (data.status?.toLowerCase() === 'success' || data.token) {
@@ -51,27 +76,53 @@ const Login = () => {
                 <form onSubmit={handleSubmit} style={styles.form}>
                     <div style={styles.inputGroup}>
                         <label style={styles.label}>Account Number</label>
-                        <input
-                            type="text"
-                            name="accountNumber"
-                            value={formData.accountNumber}
-                            onChange={handleChange}
-                            placeholder="Enter your 6-digit ID"
-                            style={styles.input}
-                            required
-                        />
+                        <div style={styles.inputWrapper}>
+                            <input
+                                type="text"
+                                name="accountNumber"
+                                value={showAccount ? formData.accountNumber : maskValue(formData.accountNumber)}
+                                onChange={handleChange}
+                                placeholder="Enter your 6-digit ID"
+                                style={styles.inputWithIcon}
+                                required
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowAccount(!showAccount)}
+                                style={styles.eyeBtn}
+                            >
+                                {showAccount ? (
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                                ) : (
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                )}
+                            </button>
+                        </div>
                     </div>
                     <div style={styles.inputGroup}>
                         <label style={styles.label}>Password</label>
-                        <input
-                            type="password"
-                            name="password"
-                            value={formData.password}
-                            onChange={handleChange}
-                            placeholder="••••••••"
-                            style={styles.input}
-                            required
-                        />
+                        <div style={styles.inputWrapper}>
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                name="password"
+                                value={formData.password}
+                                onChange={handleChange}
+                                placeholder="••••••••"
+                                style={styles.inputWithIcon}
+                                required
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                style={styles.eyeBtn}
+                            >
+                                {showPassword ? (
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                                ) : (
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                )}
+                            </button>
+                        </div>
                     </div>
 
                     {error && <div style={styles.error}>{error}</div>}
@@ -154,6 +205,42 @@ const styles = {
         fontSize: '1rem',
         outline: 'none',
         transition: 'all 0.2s',
+        width: '100%',
+    },
+    inputWrapper: {
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        width: '100%',
+    },
+    inputWithIcon: {
+        background: 'rgba(0, 0, 0, 0.2)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: '12px',
+        padding: '1rem 3.5rem 1rem 1rem',
+        color: '#ffffff',
+        fontSize: '1rem',
+        outline: 'none',
+        transition: 'all 0.2s',
+        width: '100%',
+    },
+    eyeBtn: {
+        position: 'absolute',
+        right: '12px',
+        background: 'transparent',
+        border: 'none',
+        padding: '8px',
+        cursor: 'pointer',
+        color: '#a855f7',
+        transition: 'all 0.2s',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity: 0.8,
+        '&:hover': {
+            opacity: 1,
+            transform: 'scale(1.1)',
+        }
     },
     button: {
         marginTop: '1rem',

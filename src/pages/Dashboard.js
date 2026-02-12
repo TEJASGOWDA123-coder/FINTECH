@@ -16,8 +16,11 @@ const Dashboard = () => {
     const [stats, setStats] = useState({ income: 0, expends: 0 });
     const [monthlyStats, setMonthlyStats] = useState({});
     const [loading, setLoading] = useState(false);
-    const [timeFilter, setTimeFilter] = useState('12m'); // '7d', '30d', '12m'
+    const [timeFilter, setTimeFilter] = useState('12m'); // '7d', 'all', '12m'
     const [searchTerm, setSearchTerm] = useState('');
+    const [showFilters, setShowFilters] = useState(false);
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
 
     // useEffect(() => {
     //     const handleStorage = () => {
@@ -100,17 +103,41 @@ const Dashboard = () => {
             const now = new Date();
             const currentAcc = String(AccountDetails.accountNumber || '').trim();
 
-            const filtered = transactions.filter(tx => {
-                const txDate = new Date(tx.timestamp || tx.date);
+            if (transactions.length > 0) {
+                console.log('Transaction Data Scan:', {
+                    keys: Object.keys(transactions[0]),
+                    sampleDate: transactions[0].timestamp || transactions[0].date,
+                    now: now.toISOString()
+                });
+            }
+
+            const filtered = transactions.filter((tx, idx) => {
+                let timestamp = tx.timestamp || tx.date;
+                if (typeof timestamp === 'string' && /^\d+$/.test(timestamp)) {
+                    timestamp = parseInt(timestamp);
+                }
+                const txDate = new Date(timestamp);
                 let matchesTime = true;
 
                 if (!isNaN(txDate.getTime())) {
-                    const diffTime = Math.abs(now - txDate);
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    if (startDate || endDate) {
+                        const start = startDate ? new Date(startDate).getTime() : 0;
+                        const end = endDate ? new Date(endDate).getTime() : Infinity;
+                        const time = txDate.getTime();
+                        if (time < start || time > end) matchesTime = false;
+                    } else {
+                        const diffTime = now.getTime() - txDate.getTime();
+                        const diffDays = diffTime / (1000 * 60 * 60 * 24);
 
-                    if (timeFilter === '7d' && diffDays > 7) matchesTime = false;
-                    if (timeFilter === '30d' && diffDays > 30) matchesTime = false;
-                    if (timeFilter === '12m' && diffDays > 365) matchesTime = false;
+                        if (timeFilter === '7d' && diffDays > 7) matchesTime = false;
+                        if (timeFilter === 'all') matchesTime = true;
+                        if (timeFilter === '12m' && diffDays > 365) matchesTime = false;
+                    }
+                } else {
+                    // If date is invalid, only show in 'All' mode without custom ranges
+                    if (timeFilter !== 'all' || (startDate || endDate)) {
+                        matchesTime = false;
+                    }
                 }
 
                 const term = searchTerm.toLowerCase();
@@ -163,14 +190,17 @@ const Dashboard = () => {
                 expendsSum,
                 monthlyData,
                 currentAcc,
-                filteredCount: filtered.length
+                totalTransactions: transactions.length,
+                filteredCount: filtered.length,
+                timeFilter,
+                firstFewFiltered: filtered.slice(0, 3)
             });
             setStats({ income: incomeSum, expends: expendsSum });
             setMonthlyStats(monthlyData);
         };
 
         calculateStats();
-    }, [transactions, timeFilter, searchTerm, AccountDetails.accountNumber]);
+    }, [transactions, timeFilter, searchTerm, startDate, endDate, AccountDetails.accountNumber]);
 
     // const fetchDashboardData = (accId) => {
     //     setLoading(true);
@@ -231,26 +261,80 @@ const Dashboard = () => {
 
                 <div style={styles.filterTime}>
                     <button
-                        onClick={() => setTimeFilter('12m')}
-                        style={timeFilter === '12m' ? styles.timeBtnActive : styles.timeBtn}
+                        onClick={() => {
+                            setTimeFilter('12m');
+                            setStartDate('');
+                            setEndDate('');
+                        }}
+                        style={timeFilter === '12m' && !startDate && !endDate ? styles.timeBtnActive : styles.timeBtn}
                     >
                         12 Months
                     </button>
                     <button
-                        onClick={() => setTimeFilter('30d')}
-                        style={timeFilter === '30d' ? styles.timeBtnActive : styles.timeBtn}
+                        onClick={() => {
+                            setTimeFilter('all');
+                            setStartDate('');
+                            setEndDate('');
+                        }}
+                        style={timeFilter === 'all' && !startDate && !endDate ? styles.timeBtnActive : styles.timeBtn}
                     >
-                        30 days
+                        All
                     </button>
                     <button
-                        onClick={() => setTimeFilter('7d')}
-                        style={timeFilter === '7d' ? styles.timeBtnActive : styles.timeBtn}
+                        onClick={() => {
+                            setTimeFilter('7d');
+                            setStartDate('');
+                            setEndDate('');
+                        }}
+                        style={timeFilter === '7d' && !startDate && !endDate ? styles.timeBtnActive : styles.timeBtn}
                     >
                         7 days
                     </button>
-                    <button style={styles.filterBtn}>🛠️ Filters</button>
+                    <button
+                        onClick={() => setShowFilters(!showFilters)}
+                        style={showFilters ? styles.filterBtnActive : styles.filterBtn}
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                        </svg>
+                        Filters
+                    </button>
                 </div>
             </div>
+
+            {/* Filter Bar */}
+            {showFilters && (
+                <div style={styles.filterBar}>
+                    <div style={styles.filterGroup}>
+                        <label style={styles.filterLabel}>Start Date</label>
+                        <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            style={styles.filterInput}
+                        />
+                    </div>
+                    <div style={styles.filterGroup}>
+                        <label style={styles.filterLabel}>End Date</label>
+                        <input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            style={styles.filterInput}
+                        />
+                    </div>
+                    <button
+                        onClick={() => {
+                            setStartDate('');
+                            setEndDate('');
+                            setTimeFilter('12m');
+                        }}
+                        style={styles.clearBtn}
+                    >
+                        Reset
+                    </button>
+                </div>
+            )}
 
             {/* Top Grid */}
             <div style={styles.topGrid}>
@@ -552,6 +636,72 @@ const styles = {
         fontWeight: '600',
         cursor: 'pointer',
         border: '1px solid var(--glass-border)',
+        display: 'flex',
+        alignItems: 'center',
+        transition: 'all 0.2s',
+    },
+    filterBtnActive: {
+        marginLeft: '1rem',
+        padding: '0.5rem 1.25rem',
+        borderRadius: '8px',
+        backgroundColor: 'var(--primary-color)',
+        color: '#ffffff',
+        fontSize: '0.85rem',
+        fontWeight: '700',
+        cursor: 'pointer',
+        border: 'none',
+        display: 'flex',
+        alignItems: 'center',
+        transition: 'all 0.2s',
+        boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
+    },
+    filterBar: {
+        display: 'flex',
+        gap: '1.5rem',
+        padding: '1.25rem 2rem',
+        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        borderRadius: '16px',
+        border: '1px solid var(--glass-border)',
+        marginBottom: '2rem',
+        alignItems: 'flex-end',
+        animation: 'fadeInUp 0.3s ease-out',
+    },
+    filterGroup: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.5rem',
+    },
+    filterLabel: {
+        fontSize: '0.7rem',
+        fontWeight: '700',
+        color: 'var(--text-muted)',
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+    },
+    filterInput: {
+        backgroundColor: 'var(--bg-secondary)',
+        border: '1px solid var(--glass-border)',
+        borderRadius: '8px',
+        padding: '0.6rem 1rem',
+        color: 'var(--text-primary)',
+        fontSize: '0.85rem',
+        outline: 'none',
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+    },
+    clearBtn: {
+        padding: '0.6rem 1.25rem',
+        backgroundColor: 'transparent',
+        border: '1px solid rgba(244, 63, 94, 0.3)',
+        borderRadius: '8px',
+        color: '#f43f5e',
+        fontSize: '0.85rem',
+        fontWeight: '600',
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+        '&:hover': {
+            backgroundColor: 'rgba(244, 63, 94, 0.1)',
+        }
     },
     sectionLabel: {
         fontSize: '0.9rem',
