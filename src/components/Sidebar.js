@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
-import axios from 'axios';
+import api from '../services/api';
 import '../index.css';
 
 const Sidebar = () => {
@@ -14,7 +14,7 @@ const Sidebar = () => {
         // Fetch real logged-in user from backend to sync sidebar
         const syncAccount = async () => {
             try {
-                const response = await axios.get('/loggedin_user', { withCredentials: true });
+                const response = await api.get('/loggedin_user');
                 const data = response.data;
                 if (data.status === 'success' && data.data) {
                     const accNum = data.data.accountNumber;

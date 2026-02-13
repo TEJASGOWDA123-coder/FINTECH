@@ -123,7 +123,7 @@ const Balance = () => {
                         <div style={styles.balanceCard}>
                             <div style={styles.balanceGlow}></div>
                             <p style={styles.balanceLabel}>Available Balance</p>
-                            <h2 style={styles.balanceAmount}>
+                            <h2 className="gradient-text" style={{ fontSize: '3.5rem', margin: '0 0 1.5rem 0', fontWeight: '900' }}>
                                 ₹{balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </h2>
                             <div style={styles.balanceFooter}>

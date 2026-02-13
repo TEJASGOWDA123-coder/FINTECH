@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import '../index.css';
-import axios from 'axios';
+import api from '../services/api';
 import { getTransactions } from '../services/api';
 
 const Dashboard = () => {
@@ -34,9 +34,7 @@ const Dashboard = () => {
     const getloginuser = async () => {
         try {
             // /loggedin_user
-            const data = await axios.get(`/loggedin_user`, {
-                withCredentials: true
-            });
+            const data = await api.get(`/loggedin_user`);
 
             if (data.data.status === 'success') {
                 console.log('Logged in user data:', data.data.data);
@@ -254,7 +252,7 @@ const Dashboard = () => {
             <div style={styles.mainHeader}>
                 <div>
                     <h1 className="premium-title">Banking Dashboard</h1>
-                    <p style={styles.subtitle}>Welcome back, <span className="gradient-text">{AccountDetails.username || 'User'}</span></p>
+                    <p style={styles.subtitle}>Welcome back, <span className="gradient-text">{AccountDetails.name || AccountDetails.username || 'User'}</span></p>
                     <p style={styles.accountSub}>Account: {AccountDetails.accountNumber}</p>
                 </div>
 
@@ -340,7 +338,7 @@ const Dashboard = () => {
                 {/* Credit Card */}
                 <div style={styles.cardContainer}>
                     <p style={styles.sectionLabel}>Primary Account</p>
-                    <div style={styles.glassCard} className="premium-card">
+                    <div style={styles.glassCard}>
                         <div style={styles.cardGlow} />
                         <div style={styles.cardHeader}>
                             <div style={styles.cardCircles}>
@@ -404,7 +402,7 @@ const Dashboard = () => {
                 <div style={styles.statCard} className="premium-card">
                     <p style={styles.sectionLabel}>Total Income</p>
                     <p style={styles.statMonth}>{new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</p>
-                    <h2 style={styles.statValue}>${stats.income.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h2>
+                    <h2 style={styles.statValue}>₹{stats.income.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h2>
                     <div style={styles.sparkline}>
                         <svg width="100%" height="40" viewBox="0 0 100 40">
                             <path d="M0 35 Q 25 20, 50 30 T 100 10" fill="none" stroke="#10b981" strokeWidth="2" />
@@ -418,7 +416,7 @@ const Dashboard = () => {
                 <div style={styles.statCard} className="premium-card">
                     <p style={styles.sectionLabel}>Total Expends</p>
                     <p style={styles.statMonth}>{new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</p>
-                    <h2 style={styles.statValue}>${stats.expends.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h2>
+                    <h2 style={styles.statValue}>₹{stats.expends.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h2>
                     <div style={styles.sparkline}>
                         <svg width="100%" height="40" viewBox="0 0 100 40">
                             <path d="M0 10 Q 25 30, 50 20 T 100 35" fill="none" stroke="#f43f5e" strokeWidth="2" />
