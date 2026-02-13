@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import axios from 'axios';
+import '../index.css';
 
 const Sidebar = () => {
     const location = useLocation();
@@ -67,7 +68,7 @@ const Sidebar = () => {
     ];
 
     return (
-        <aside style={styles.sidebar}>
+        <aside style={styles.sidebar} className="no-scrollbar">
             <div style={styles.brand}>
                 <div style={styles.logoCircle}>
                     <div style={styles.logoInner} />
@@ -148,6 +149,7 @@ const styles = {
         padding: '2rem 1rem',
         borderRight: '1px solid var(--glass-border)',
         transition: 'var(--transition)',
+        overflowY: 'auto',
     },
     brand: {
         display: 'flex',
