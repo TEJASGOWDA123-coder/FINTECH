@@ -12,7 +12,9 @@ I need you to implement two REST API endpoints for a Spring Boot banking applica
 **Requirements:**
 - Generate a PDF containing the user's monthly transaction statement
 - Use the logged-in user's account from the HTTP session
-- Include: Account number, statement period (last 30 days), current balance, and transaction table
+- Accept optional `startDate` and `endDate` query parameters (YYYY-MM-DD format)
+- If parameters provided, filter transactions by that range; else default to last 30 days
+- Include: Account number, statement period, current balance, and transaction table
 - Transaction table columns: Date, Type, Description, Amount
 - Return PDF as downloadable file with proper headers
 - Handle unauthorized access (no session) with 401 status

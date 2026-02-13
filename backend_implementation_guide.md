@@ -34,7 +34,11 @@ public class StatementController {
     private StatementService statementService;
 
     @GetMapping("/monthly")
-    public ResponseEntity<byte[]> getMonthlyStatement(HttpSession session) {
+    public ResponseEntity<byte[]> getMonthlyStatement(
+        @RequestParam(required = false) String startDate,
+        @RequestParam(required = false) String endDate,
+        HttpSession session) {
+        
         // Get logged-in user from session
         String accountNumber = (String) session.getAttribute("accountNumber");
         
@@ -43,8 +47,8 @@ public class StatementController {
         }
 
         try {
-            // Generate PDF
-            byte[] pdfBytes = statementService.generateMonthlyStatement(accountNumber);
+            // Generate PDF with date range
+            byte[] pdfBytes = statementService.generateMonthlyStatement(accountNumber, startDate, endDate);
 
             // Set headers for PDF download
             HttpHeaders headers = new HttpHeaders();
@@ -75,7 +79,7 @@ public class StatementService {
     @Autowired
     private AccountRepository accountRepository;
 
-    public byte[] generateMonthlyStatement(String accountNumber) throws IOException {
+    public byte[] generateMonthlyStatement(String accountNumber, String startDateStr, String endDateStr) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PdfWriter writer = new PdfWriter(baos);
         PdfDocument pdf = new PdfDocument(writer);
@@ -85,9 +89,18 @@ public class StatementService {
         Account account = accountRepository.findByAccountNumber(accountNumber)
             .orElseThrow(() -> new RuntimeException("Account not found"));
 
-        // Get transactions for last month
-        LocalDateTime startDate = LocalDate.now().minusMonths(1).atStartOfDay();
-        LocalDateTime endDate = LocalDateTime.now();
+        // Determine date range
+        LocalDateTime startDate;
+        LocalDateTime endDate;
+        if (startDateStr != null && endDateStr != null) {
+            startDate = LocalDate.parse(startDateStr).atStartOfDay();
+            endDate = LocalDate.parse(endDateStr).atTime(LocalTime.MAX);
+        } else {
+            startDate = LocalDate.now().minusMonths(1).atStartOfDay();
+            endDate = LocalDateTime.now();
+        }
+
+        // Get transactions for the range
         List<Transaction> transactions = transactionRepository
             .findByAccountNumberAndDateBetween(accountNumber, startDate, endDate);
 

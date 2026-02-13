@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 
 import '../index.css';
-import { getTransactions, reverseTransaction } from '../services/api';
+import { getTransactions } from '../services/api';
 
 const TransactionHistory = () => {
 
@@ -9,14 +9,7 @@ const TransactionHistory = () => {
     const [loading, setLoading] = useState(false);
 
     const [error, setError] = useState('');
-    const [accountNumber] = useState(localStorage.getItem('accountNumber') || '');
-    const [reversingId, setReversingId] = useState(null);
-    const [toast, setToast] = useState({ show: false, message: '', type: '' });
-
-    const showToast = (message, type = 'success') => {
-        setToast({ show: true, message, type });
-        setTimeout(() => setToast({ show: false, message: '', type: '' }), 4000);
-    };
+    const accountNumber = localStorage.getItem('accountNumber') || '';
 
     const fetchTransactions = useCallback(() => {
         setLoading(true);
@@ -50,51 +43,19 @@ const TransactionHistory = () => {
         fetchUserData();
     }, [fetchTransactions]);
 
-    const handleReverse = async (txnId) => {
-        if (!window.confirm(`Are you sure you want to reverse transaction ${txnId}?`)) return;
-
-        setReversingId(txnId);
-        try {
-            const res = await reverseTransaction(txnId);
-            if (res.status === 'success' || res.success) {
-                showToast(`Transaction ${txnId} successfully reversed.`);
-                fetchTransactions();
-            } else {
-                showToast(res.message || 'Failed to reverse transaction', 'error');
-            }
-        } catch (err) {
-            console.error('Reversal failed:', err);
-            const errorMsg = err.response?.data?.message || err.message || 'Failed to reverse transaction';
-            showToast(errorMsg, 'error');
-        } finally {
-            setReversingId(null);
-        }
-    };
 
     return (
         <div style={styles.container}>
-            <div style={styles.card}>
-                <h1 style={styles.header}>Transaction History</h1>
-                <p style={styles.subHeader}>Track your financial activity.</p>
-
-                {/* <form onSubmit={fetchTransactions} style={{ ...styles.form, marginBottom: '2rem' }}> */}
-                {/* <div style={styles.inputGroup} >
-                    <label style={styles.label}>Account ID to View</label>
-
-                    <input type="text"
-                        value={pin}
-                        placeholder="Enter  Pin"
-                        onChange={(e) => setPin(e.target.value)} />
-                </div>
-                <button type="submit" onClick={() => handlecheckhistory()} style={styles.button}>View History</button> */}
-                {/* </form> */}
+            <div className="premium-card">
+                <h1 className="premium-title">Transaction History</h1>
+                <p style={styles.subHeader}>Track your financial activity with precision.</p>
 
                 {error && <p style={styles.error}>{error}</p>}
 
                 {loading ? (
                     <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>Loading transactions...</p>
                 ) : (
-                    <div style={styles.tableContainer}>
+                    <div style={styles.tableContainer} className="glass-panel">
                         <table style={styles.table}>
                             <thead>
                                 <tr>
@@ -104,7 +65,6 @@ const TransactionHistory = () => {
                                     <th style={styles.th}>Account</th>
                                     <th style={styles.th}>Status</th>
                                     <th style={styles.thRight}>Amount</th>
-                                    <th style={styles.thRight}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -113,11 +73,9 @@ const TransactionHistory = () => {
                                     const amount = Math.abs(txn.amount);
                                     let isCredit = isReceiver;
 
-                                    // Explicitly handle types to ensure correct credit/debit logic
                                     if (txn.type === 'DEPOSIT' || txn.type === 'INITIAL_DEPOSIT') isCredit = true;
                                     if (txn.type === 'WITHDRAW') isCredit = false;
 
-                                    // Determine the "other" account
                                     let otherAccount = isReceiver ? txn.senderAccount : txn.receiverAccount;
                                     if (txn.type === 'DEPOSIT') otherAccount = 'Bank Deposit';
                                     if (txn.type === 'INITIAL_DEPOSIT') otherAccount = 'Initial Deposit';
@@ -139,19 +97,6 @@ const TransactionHistory = () => {
                                             <td style={{ ...styles.tdRight, color: isCredit ? 'var(--success-color)' : 'var(--danger-color)' }}>
                                                 {isCredit ? '+' : '-'}{amount.toFixed(2)}
                                             </td>
-                                            <td style={styles.tdRight}>
-                                                <button
-                                                    onClick={() => handleReverse(txn.id)}
-                                                    disabled={txn.reversed || reversingId === txn.id || txn.type === 'REVERSAL'}
-                                                    style={{
-                                                        ...styles.reverseBtn,
-                                                        opacity: (txn.reversed || reversingId === txn.id || txn.type === 'REVERSAL') ? 0.5 : 1,
-                                                        cursor: (txn.reversed || reversingId === txn.id || txn.type === 'REVERSAL') ? 'not-allowed' : 'pointer'
-                                                    }}
-                                                >
-                                                    {reversingId === txn.id ? '...' : (txn.reversed || txn.type === 'REVERSAL' ? 'Reversed' : 'Reverse')}
-                                                </button>
-                                            </td>
                                         </tr>
                                     );
                                 })}
@@ -160,15 +105,6 @@ const TransactionHistory = () => {
                     </div>
                 )}
             </div>
-
-            {toast.show && (
-                <div style={{
-                    ...styles.toast,
-                    backgroundColor: toast.type === 'error' ? 'var(--danger-color)' : 'var(--success-color)'
-                }}>
-                    {toast.message}
-                </div>
-            )}
         </div>
     );
 };
@@ -240,53 +176,49 @@ const styles = {
         borderRadius: '16px',
         overflow: 'hidden',
         border: '1px solid var(--glass-border)',
+        backgroundColor: 'rgba(255, 255, 255, 0.02)',
     },
     table: {
         width: '100%',
         borderCollapse: 'collapse',
-        backgroundColor: 'var(--bg-secondary)',
     },
     th: {
         textAlign: 'left',
         padding: '1rem 1.5rem',
         color: 'var(--text-muted)',
         backgroundColor: 'var(--bg-tertiary)',
-        fontSize: '0.75rem',
-        fontWeight: '700',
-        textTransform: 'uppercase',
-        borderBottom: '1px solid var(--glass-border)',
+        borderBottom: '2px solid var(--glass-border)',
+        fontWeight: 'bold',
+        fontSize: '0.9rem',
     },
     thRight: {
         textAlign: 'right',
         padding: '1rem 1.5rem',
         color: 'var(--text-muted)',
         backgroundColor: 'var(--bg-tertiary)',
-        fontSize: '0.75rem',
-        fontWeight: '700',
-        textTransform: 'uppercase',
-        borderBottom: '1px solid var(--glass-border)',
+        borderBottom: '2px solid var(--glass-border)',
+        fontWeight: 'bold',
+        fontSize: '0.9rem',
     },
     tr: {
         borderBottom: '1px solid var(--glass-border)',
-        transition: 'var(--transition)',
     },
     td: {
-        padding: '1.25rem 1.5rem',
-        color: 'var(--text-secondary)',
+        padding: '1rem 1.5rem',
         fontSize: '0.9rem',
-    },
-    tdCode: {
-        padding: '1.25rem 1.5rem',
-        color: 'var(--text-muted)',
-        fontFamily: 'monospace',
-        fontSize: '0.8rem',
+        color: 'var(--text-primary)',
     },
     tdRight: {
-        padding: '1.25rem 1.5rem',
+        padding: '1rem 1.5rem',
+        fontSize: '0.9rem',
         textAlign: 'right',
-        fontSize: '0.95rem',
-        fontWeight: '800',
         color: 'var(--text-primary)',
+    },
+    tdCode: {
+        padding: '1rem',
+        fontSize: '0.85rem',
+        fontFamily: 'monospace',
+        color: 'var(--text-secondary)',
     },
     error: {
         color: 'var(--danger-color)',
@@ -296,28 +228,6 @@ const styles = {
         borderRadius: '12px',
         margin: '1.5rem 0',
         border: '1px solid var(--danger-color)',
-    },
-    reverseBtn: {
-        backgroundColor: 'transparent',
-        color: 'var(--danger-color)',
-        border: '1px solid var(--danger-color)',
-        padding: '0.4rem 0.8rem',
-        borderRadius: '8px',
-        fontSize: '0.75rem',
-        fontWeight: '700',
-        transition: 'var(--transition)',
-    },
-    toast: {
-        position: 'fixed',
-        bottom: '30px',
-        right: '30px',
-        padding: '1rem 2rem',
-        borderRadius: '12px',
-        color: 'white',
-        fontWeight: '700',
-        boxShadow: 'var(--shadow-lg)',
-        zIndex: 9999,
-        animation: 'slideIn 0.3s ease-out',
     }
 };
 

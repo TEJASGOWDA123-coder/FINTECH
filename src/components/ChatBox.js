@@ -139,14 +139,14 @@ const ChatBox = () => {
 
     if (!isOpen) {
         return (
-            <div style={styles.bubble} onClick={() => setIsOpen(true)}>
+            <div style={styles.bubble} onClick={() => setIsOpen(true)} className="no-print">
                 <span style={styles.bubbleIcon}>💬</span>
             </div>
         );
     }
 
     return (
-        <div style={styles.chatWindow}>
+        <div style={styles.chatWindow} className="no-print">
             <div style={styles.header}>
                 <div style={styles.headerInfo}>
                     <div style={styles.aiStatus} />

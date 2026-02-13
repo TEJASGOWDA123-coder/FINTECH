@@ -68,7 +68,7 @@ const Sidebar = () => {
     ];
 
     return (
-        <aside style={styles.sidebar} className="no-scrollbar">
+        <aside style={styles.sidebar} className="no-scrollbar no-print">
             <div style={styles.brand}>
                 <div style={styles.logoCircle}>
                     <div style={styles.logoInner} />

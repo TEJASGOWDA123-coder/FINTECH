@@ -210,10 +210,10 @@ const PortfolioDashboard = () => {
             <StockTicker stocks={stocks} />
 
             <div className="portfolio-dashboard" style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
-                <header style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <header style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                     <div>
-                        <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Portfolio Dashboard</h1>
-                        <p style={{ color: 'var(--text-secondary)' }}>Real-time stock performance and allocation</p>
+                        <h1 className="premium-title">Portfolio Dashboard</h1>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '1rem', margin: 0 }}>Real-time stock performance and allocation</p>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
@@ -258,7 +258,7 @@ const PortfolioDashboard = () => {
 
                 {summary && (
                     <div className="dashboard-grid">
-                        <div className="summary-card">
+                        <div className="summary-card premium-card">
                             <span className="summary-label">Total Portfolio Value</span>
                             <span className="summary-value">${summary.totalValue.toFixed(2)}</span>
                             <span className="summary-subtext">
@@ -268,21 +268,21 @@ const PortfolioDashboard = () => {
                                 &nbsp;All Time
                             </span>
                         </div>
-                        <div className="summary-card">
+                        <div className="summary-card premium-card">
                             <span className="summary-label">Top Performer</span>
                             <span className="summary-value">{summary.bestStock?.symbol}</span>
                             <span className="summary-subtext trend-up">
                                 +{(((summary.bestStock.currentPrice - summary.bestStock.buyPrice) / summary.bestStock.buyPrice) * 100).toFixed(2)}%
                             </span>
                         </div>
-                        <div className="summary-card">
+                        <div className="summary-card premium-card">
                             <span className="summary-label">Worst Performer</span>
                             <span className="summary-value">{summary.worstStock?.symbol}</span>
                             <span className="summary-subtext trend-down">
                                 {(((summary.worstStock.currentPrice - summary.worstStock.buyPrice) / summary.worstStock.buyPrice) * 100).toFixed(2)}%
                             </span>
                         </div>
-                        <div className="summary-card">
+                        <div className="summary-card premium-card">
                             <span className="summary-label">API Latency</span>
                             <span className="summary-value" style={{ color: latency > 300 ? 'var(--danger-color)' : 'var(--success-color)' }}>
                                 {latency}ms

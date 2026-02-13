@@ -89,8 +89,8 @@ const Transfer = () => {
             {/* Top Bar (Simplified version of Dashboard Top Bar) */}
             <header style={styles.topBar}>
                 <div style={styles.headerTitle}>
-                    <h1 style={styles.title}>Send Money</h1>
-                    <p style={styles.subtitle}>Secure, instant transfers to any account.</p>
+                    <h1 className="premium-title">Send Money</h1>
+                    <p style={styles.subtitle}>Secure, instant transfers across the globe.</p>
                 </div>
                 <div style={styles.userActions}>
                     <Link to="/notifications" style={styles.notifIcon}>🔔</Link>
@@ -103,7 +103,7 @@ const Transfer = () => {
 
             <div style={styles.contentGrid}>
                 {/* Transfer Form Card */}
-                <div style={styles.card}>
+                <div style={styles.card} className="premium-card">
                     <div style={styles.cardGlow} />
                     <form onSubmit={handleTransferStart} style={styles.form}>
                         <div style={styles.inputSection}>
@@ -184,7 +184,7 @@ const Transfer = () => {
                 </div>
 
                 {/* Info Card */}
-                <div style={styles.infoCard}>
+                <div style={styles.infoCard} className="premium-card">
                     <h3 style={styles.infoTitle}>Transfer Information</h3>
                     <div style={styles.infoItem}>
                         <p style={styles.infoLabel}>From Account</p>

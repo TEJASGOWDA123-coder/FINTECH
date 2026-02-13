@@ -116,6 +116,23 @@ export const sendChatMessage = async (message) => {
 
 export const downloadStatement = async (startDate, endDate) => {
     try {
+        const file = await getStatementFile(startDate, endDate);
+        const blobUrl = window.URL.createObjectURL(file);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.setAttribute('download', file.name);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+        console.error("Statement Download Error:", error.message);
+        throw error;
+    }
+};
+
+export const getStatementFile = async (startDate, endDate) => {
+    try {
         let url = '/api/statements/monthly';
         const params = [];
         if (startDate) params.push(`startDate=${startDate}`);
@@ -127,16 +144,11 @@ export const downloadStatement = async (startDate, endDate) => {
         const response = await api.get(url, {
             responseType: 'blob'
         });
-        const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement('a');
-        link.href = blobUrl;
+
         const filename = startDate ? `statement_${startDate}_${endDate}.pdf` : 'monthly_statement.pdf';
-        link.setAttribute('download', filename);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
+        return new File([response.data], filename, { type: 'application/pdf' });
     } catch (error) {
-        console.error("Statement Download Error:", error.message);
+        console.error("Failed to fetch statement file:", error.message);
         throw error;
     }
 };

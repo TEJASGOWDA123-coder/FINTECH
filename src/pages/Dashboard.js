@@ -253,10 +253,9 @@ const Dashboard = () => {
 
             <div style={styles.mainHeader}>
                 <div>
-                    <h1 style={styles.title}>Banking Dashboard</h1>
-                    {/* <p style={styles.subtitle}>Welcome Back, Account: {account}</p> */}
-                    <p style={styles.subtitle}>Welcome Back: {AccountDetails.username || 'User'}</p>
-                    <p style={styles.subtitle}>Account: {AccountDetails.accountNumber}</p>
+                    <h1 className="premium-title">Banking Dashboard</h1>
+                    <p style={styles.subtitle}>Welcome back, <span className="gradient-text">{AccountDetails.username || 'User'}</span></p>
+                    <p style={styles.accountSub}>Account: {AccountDetails.accountNumber}</p>
                 </div>
 
                 <div style={styles.filterTime}>
@@ -341,7 +340,7 @@ const Dashboard = () => {
                 {/* Credit Card */}
                 <div style={styles.cardContainer}>
                     <p style={styles.sectionLabel}>Primary Account</p>
-                    <div style={styles.glassCard}>
+                    <div style={styles.glassCard} className="premium-card">
                         <div style={styles.cardGlow} />
                         <div style={styles.cardHeader}>
                             <div style={styles.cardCircles}>
@@ -402,7 +401,7 @@ const Dashboard = () => {
                 </div>
 
                 {/* Income Analytics */}
-                <div style={styles.statCard}>
+                <div style={styles.statCard} className="premium-card">
                     <p style={styles.sectionLabel}>Total Income</p>
                     <p style={styles.statMonth}>{new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</p>
                     <h2 style={styles.statValue}>${stats.income.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h2>
@@ -416,7 +415,7 @@ const Dashboard = () => {
                 </div>
 
                 {/* Expends Analytics */}
-                <div style={styles.statCard}>
+                <div style={styles.statCard} className="premium-card">
                     <p style={styles.sectionLabel}>Total Expends</p>
                     <p style={styles.statMonth}>{new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</p>
                     <h2 style={styles.statValue}>${stats.expends.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h2>
@@ -433,7 +432,7 @@ const Dashboard = () => {
             {/* Bottom Grid */}
             <div style={styles.bottomGrid}>
                 {/* Money Flow Chart */}
-                <div style={styles.chartSection}>
+                <div style={styles.chartSection} className="premium-card">
                     <div style={styles.chartHeader}>
                         <p style={styles.sectionLabel}>Money Flow</p>
                         <div style={styles.legend}>
@@ -489,7 +488,7 @@ const Dashboard = () => {
                 </div>
 
                 {/* Recent Transactions */}
-                <div style={styles.transactionsSection}>
+                <div style={styles.transactionsSection} className="premium-card">
                     <p style={styles.sectionLabel}>Recent Transactions</p>
                     <div style={styles.transactionsList}>
                         {loading ? (
